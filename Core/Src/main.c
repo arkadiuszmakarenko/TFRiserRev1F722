@@ -122,10 +122,14 @@ int main(void)
        }
     if (usb->keyboard!=NULL)
        {
+    	int z = 0;
+    	z = usb->keyboard;
 
        }
     if (usb->mouse!=NULL)
        {
+    	int d = 0;
+    	d = usb->mouse;
 
        }
 
