@@ -37,7 +37,7 @@
  {
    uint8_t *gamepad1;
    uint8_t *gamepad2;
-   uint8_t *keyboard;
+   HID_KEYBD_Info_TypeDef *keyboard;
    HID_MOUSE_Info_TypeDef *mouse;
 
  }
