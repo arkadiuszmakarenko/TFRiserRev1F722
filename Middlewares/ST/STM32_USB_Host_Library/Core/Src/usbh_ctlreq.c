@@ -132,7 +132,7 @@ USBH_StatusTypeDef USBH_Get_CfgDesc(USBH_HandleTypeDef *phost,
 
 {
   USBH_StatusTypeDef status;
-  uint8_t *pData = phost->device.CfgDesc_Raw;;
+  uint8_t *pData = phost->device.CfgDesc_Raw;
 
   if ((status = USBH_GetDescriptor(phost, (USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD),
                                    USB_DESC_CONFIGURATION,0U,pData, length)) == USBH_OK)

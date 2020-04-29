@@ -30,6 +30,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx.h"
 #include "stm32f7xx_hal.h"
+#include "usbh_hid_mouse.h"
 
 /* USER CODE BEGIN INCLUDE */
  typedef struct _HID_USBDev
@@ -37,7 +38,7 @@
    uint8_t *gamepad1;
    uint8_t *gamepad2;
    uint8_t *keyboard;
-   uint8_t *mouse;
+   HID_MOUSE_Info_TypeDef *mouse;
 
  }
  HID_USBDevicesTypeDef;

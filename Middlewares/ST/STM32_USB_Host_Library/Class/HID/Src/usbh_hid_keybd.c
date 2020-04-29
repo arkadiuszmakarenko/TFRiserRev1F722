@@ -328,7 +328,7 @@ static  const  uint8_t  HID_KEYBRD_Codes[] =
 USBH_StatusTypeDef USBH_HID_KeybdInit(USBH_HandleTypeDef *phost)
 {
   uint32_t x;
-  HID_HandleTypeDef *HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData;
+  HID_HandleTypeDef *HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData[phost->device.current_interface];
 
   keybd_info.lctrl = keybd_info.lshift = 0U;
   keybd_info.lalt = keybd_info.lgui = 0U;

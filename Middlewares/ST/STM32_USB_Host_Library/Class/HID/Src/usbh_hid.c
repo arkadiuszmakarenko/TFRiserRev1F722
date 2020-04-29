@@ -208,7 +208,7 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
 	  		    HID_Handle->length    = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].Ep_Desc[0].wMaxPacketSize;
 	  		    HID_Handle->poll      = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].Ep_Desc[0].bInterval ;
 
-	  	      USBH_HID_ParseHIDDesc(&HID_Handle->HID_Desc, phost->device.CfgDesc_Raw);
+	  	      USBH_HID_ParseHIDDesc(&HID_Handle->HID_Desc, phost->device.Data);
 	  	      phost->pActiveClass->iface_init = IFACE_READHIDRPTDESC;
 
 	  	    }
@@ -757,35 +757,16 @@ USBH_StatusTypeDef USBH_HID_SetProtocol(USBH_HandleTypeDef *phost,
   * @param  buf: Buffer where the source descriptor is available
   * @retval None
   */
-static void  USBH_HID_ParseHIDDesc(HID_DescTypeDef *desc, uint8_t *buf)
+static void  USBH_HID_ParseHIDDesc (HID_DescTypeDef *desc, uint8_t *buf)
 {
-  USBH_DescHeader_t *pdesc = (USBH_DescHeader_t *)buf;
-  uint16_t CfgDescLen;
-  uint16_t ptr;
 
-  CfgDescLen = LE16(buf + 2U);
-
-  if (CfgDescLen > USB_CONFIGURATION_DESC_SIZE)
-  {
-    ptr = USB_LEN_CFG_DESC;
-
-    while (ptr < CfgDescLen)
-    {
-      pdesc = USBH_GetNextDesc((uint8_t *)pdesc, &ptr);
-
-      if (pdesc->bDescriptorType == USB_DESC_TYPE_HID)
-      {
-        desc->bLength = *(uint8_t *)((uint8_t *)pdesc + 0U);
-        desc->bDescriptorType = *(uint8_t *)((uint8_t *)pdesc + 1U);
-        desc->bcdHID = LE16((uint8_t *)pdesc + 2U);
-        desc->bCountryCode = *(uint8_t *)((uint8_t *)pdesc + 4U);
-        desc->bNumDescriptors = *(uint8_t *)((uint8_t *)pdesc + 5U);
-        desc->bReportDescriptorType = *(uint8_t *)((uint8_t *)pdesc + 6U);
-        desc->wItemLength = LE16((uint8_t *)pdesc + 7U);
-        break;
-      }
-    }
-  }
+  desc->bLength                  = *(uint8_t  *) (buf + 0);
+  desc->bDescriptorType          = *(uint8_t  *) (buf + 1);
+  desc->bcdHID                   =  LE16  (buf + 2);
+  desc->bCountryCode             = *(uint8_t  *) (buf + 4);
+  desc->bNumDescriptors          = *(uint8_t  *) (buf + 5);
+  desc->bReportDescriptorType    = *(uint8_t  *) (buf + 6);
+  desc->wItemLength              =  LE16  (buf + 7);
 }
 
 /**
