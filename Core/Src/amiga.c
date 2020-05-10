@@ -628,6 +628,29 @@ static unsigned char capslk = 0;
 static unsigned char numlk = 0;
 static unsigned char scrolllk = 0;
 
+#define delayUS_ASM(us) do {\
+	asm volatile (	"MOV R0,%[loops]\n\t"\
+			"1: \n\t"\
+			"SUB R0, #1\n\t"\
+			"CMP R0, #0\n\t"\
+			"BNE 1b \n\t" : : [loops] "r" (17*us) : "memory"\
+		      );\
+} while(0)
+
+void udelay(uint32_t micros)
+{
+	//DBG_N("Enter with: %lu\n", micros);
+	if (micros > 0)
+	{
+		/* Go to number of cycles for system */
+		//DBG_N("MICROS: %lu\r\n", micros);
+		delayUS_ASM(micros);
+	}
+	//DBG_N("Exit\r\n");
+}
+
+
+
 static void amikb_direction(kbd_dir dir);
 static led_status_t amikb_send(uint8_t code, int press);
 
@@ -683,7 +706,8 @@ void amikb_startup(void)
 
 	HAL_Delay(1000);           // wait for sync
 	amikb_send((uint8_t) AMIGA_INITPOWER, 0); // send "initiate power-up"
-	DWT_Delay(200);
+	//DWT_Delay(200);
+	udelay(200);
 	amikb_send((uint8_t) AMIGA_TERMPOWER, 0); // send "terminate power-up"
 
 	//DBG_N("Exit\r\n");
@@ -897,9 +921,11 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 
 	// pulse the data line and wait for about 100us
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_RESET); // KBD_DATA pin is LOW
-	DWT_Delay(20);
+	//DWT_Delay(15);
+	udelay(20);
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET); // KBD_DATA pin is HIGH
-	DWT_Delay(20);
+	//DWT_Delay(15);
+	udelay(20);
 
 	for (i = 0; i < 8; i++)
 	{
@@ -915,12 +941,15 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 			HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
 		}
 		keycode <<= 1;
-		DWT_Delay(20);
+		//DWT_Delay(15);
+		udelay(20);
 		/* pulse the clock */
 		HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_RESET); // Clear KBD_CLOCK pin
-		DWT_Delay(20);
+		//DWT_Delay(15);
+		udelay(20);
 		HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET); // Set KBD_CLOCK pin
-		DWT_Delay(20);
+		udelay(20);
+		//DWT_Delay(15);
 	}
 
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET); // Set KBD_DATA pin

@@ -67,6 +67,7 @@ void MX_USB_HOST_Process(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+
 /* USER CODE END 0 */
 
 /**
@@ -82,7 +83,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+ HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -101,6 +102,10 @@ int main(void)
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init();
+
+  amikb_startup();
+  amikb_ready(0);
+
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
@@ -133,8 +138,13 @@ int main(void)
     			keycode.keys[i] = k_pinfo->keys[i];
     		}
     		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    	    amikb_process(&keycode);
 
+
+    	}
+
+    	if (usb!=NULL)
+    	{
+    	amikb_process(&keycode);
     	}
 
 
