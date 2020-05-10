@@ -21,6 +21,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_host.h"
+#include "dwt_delay.h"
+#include "amiga.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -35,6 +37,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
  HID_USBDevicesTypeDef* usb;
+ static keyboard_code_t keycode;
+ HID_KEYBD_Info_TypeDef *k_pinfo;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -96,7 +100,7 @@ int main(void)
   MX_UART5_Init();
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
-
+  DWT_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,32 +110,30 @@ int main(void)
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
-    usb = USBH_HID_GetUSBDev();
+       usb = USBH_HID_GetUSBDev();
 
-    if (usb->gamepad1!=NULL)
-    {
-    	int x = 0;
-    	x = &usb->gamepad1;
+    	k_pinfo = usb->keyboard ;
+    	int i = 0;
 
-    }
-    if (usb->gamepad2!=NULL)
-       {
-    	int y = 0;
-    	y = &usb->gamepad2;
+    	if (usb!=NULL && k_pinfo != NULL)
+    	{
+     		keycode.lctrl = k_pinfo->lctrl;
+    		keycode.lshift = k_pinfo->lshift;
+    		keycode.lalt = k_pinfo->lalt;
+    		keycode.lgui = k_pinfo->lgui;
+    		keycode.rctrl = k_pinfo->rctrl;
+    		keycode.rshift = k_pinfo->rshift;
+    		keycode.ralt = k_pinfo->ralt;
+    		keycode.rgui = k_pinfo->rgui;
+    		for (i = 0; i < KEY_PRESSED_MAX; i++)
+    		{
+    			keycode.keys[i] = k_pinfo->keys[i];
+    		}
+    		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    	    amikb_process(&keycode);
 
-       }
-    if (usb->keyboard!=NULL)
-       {
-    	int z = 0;
-    	z = usb->keyboard;
+    	}
 
-       }
-    if (usb->mouse!=NULL)
-       {
-    	int d = 0;
-    	d = usb->mouse;
-
-       }
 
 
     /* USER CODE BEGIN 3 */
@@ -237,13 +239,34 @@ static void MX_UART5_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, KBD_CLOCK_Pin|LED2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : KBD_DATA_Pin */
+  GPIO_InitStruct.Pin = KBD_DATA_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(KBD_DATA_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : KBD_CLOCK_Pin LED2_Pin */
+  GPIO_InitStruct.Pin = KBD_CLOCK_Pin|LED2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 

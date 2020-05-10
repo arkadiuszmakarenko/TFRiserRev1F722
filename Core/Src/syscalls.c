@@ -30,6 +30,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include <stm32f7xx_hal.h>
 
 
 /* Variables */
@@ -42,6 +43,9 @@ register char * stack_ptr asm("sp");
 
 char *__env[1] = { 0 };
 char **environ = __env;
+
+#define STK_MHZ    ((92 * 1000000) / 8)
+
 
 
 /* Functions */
@@ -157,3 +161,4 @@ int _execve(char *name, char **argv, char **env)
 	errno = ENOMEM;
 	return -1;
 }
+
