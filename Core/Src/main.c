@@ -37,7 +37,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
  HID_USBDevicesTypeDef* usb;
- static keyboard_code_t keycode;
  HID_KEYBD_Info_TypeDef *k_pinfo;
 /* USER CODE END PD */
 
@@ -103,8 +102,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   DWT_Init();
 
-  amikb_startup();
-  amikb_ready(0);
+  //amikb_startup();
+  //amikb_ready(0);
 
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
@@ -115,10 +114,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+
     MX_USB_HOST_Process();
 
        usb = USBH_HID_GetUSBDev();
+        keyboard_code_t keycode = {0};
 
     	k_pinfo = usb->keyboard ;
     	int i = 0;
@@ -138,8 +138,6 @@ int main(void)
     			keycode.keys[i] = k_pinfo->keys[i];
     		}
     		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-
-
     	}
 
     	if (usb!=NULL)
@@ -148,8 +146,6 @@ int main(void)
     	}
 
 
-
-    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
