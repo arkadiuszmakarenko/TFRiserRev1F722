@@ -109,7 +109,7 @@ int main(void)
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
-
+   keyboard_code_t keycode = {0};
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -118,7 +118,7 @@ int main(void)
     MX_USB_HOST_Process();
 
        usb = USBH_HID_GetUSBDev();
-        keyboard_code_t keycode = {0};
+
 
     	k_pinfo = usb->keyboard ;
     	int i = 0;
@@ -138,11 +138,7 @@ int main(void)
     			keycode.keys[i] = k_pinfo->keys[i];
     		}
     		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    	}
-
-    	if (usb!=NULL)
-    	{
-    	amikb_process(&keycode);
+    		amikb_process(&keycode);
     	}
 
 
