@@ -102,8 +102,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   DWT_Init();
 
-  //amikb_startup();
-  //amikb_ready(0);
+  amikb_startup();
+  amikb_ready(0);
 
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
