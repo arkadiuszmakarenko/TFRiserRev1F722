@@ -169,6 +169,8 @@ int main(void)
     	if (KeyboardLedInit==0)
     	{
     		usb_keyboard_led_init(usb->keyboardusbhost);
+    		//restore LED status on new keyboard.
+    		usb_keyboard_led(usb->keyboardusbhost, keyboard_led);
     		KeyboardLedInit++;
     	}
 
@@ -243,10 +245,13 @@ int main(void)
     }
     else
     {
+    	//Keyboard is deinit.
     	KeyboardLedInit = 0;
+
     }
     //clear usbDevHost
     usb->keyboardusbhost = NULL;
+
 
   }
   /* USER CODE END 3 */
