@@ -38,6 +38,8 @@
    uint8_t *gamepad1;
    uint8_t *gamepad2;
    HID_KEYBD_Info_TypeDef *keyboard;
+   USBH_HandleTypeDef *keyboardusbhost;
+   uint8_t kbd_int;
    HID_MOUSE_Info_TypeDef *mouse;
 
  }

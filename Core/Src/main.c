@@ -38,6 +38,10 @@
 /* USER CODE BEGIN PD */
  HID_USBDevicesTypeDef* usb;
  HID_KEYBD_Info_TypeDef *k_pinfo;
+
+
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -68,6 +72,41 @@ void MX_USB_HOST_Process(void);
 
 
 /* USER CODE END 0 */
+static void usb_keyboard_led(USBH_HandleTypeDef *usbhost, keyboard_led_t ld)
+{
+	keyboard_led_t led = ld;
+	USBH_StatusTypeDef status;
+	int retrygood = 1;
+	if (usbhost != NULL)
+	{
+		for (;;)
+		{
+			status = USBH_HID_SetReport(usbhost, 0x02, 0x00, &led, 1);
+			if (status == USBH_OK)
+				retrygood--;
+			if (retrygood <= 0)
+				break;
+		}
+	}
+}
+
+static void usb_keyboard_led_init(USBH_HandleTypeDef * usbhost)
+{
+	keyboard_led_t led = CAPS_LOCK_LED | NUM_LOCK_LED | SCROLL_LOCK_LED;
+	int n;
+	if (usbhost != NULL)
+	{
+		for (n = 0; n < 2; n++)
+		{
+			usb_keyboard_led(usbhost, led);
+			HAL_Delay(250);
+			usb_keyboard_led(usbhost, 0);
+			HAL_Delay(125);
+		}
+		/* Default leds off */
+		usb_keyboard_led(usbhost, 0);
+	}
+}
 
 /**
   * @brief  The application entry point.
@@ -76,6 +115,10 @@ void MX_USB_HOST_Process(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	led_status_t stat;
+	uint8_t do_led = 0;
+	uint8_t KeyboardLedInit = 0;
+	static keyboard_led_t keyboard_led = 0;
 
   /* USER CODE END 1 */
 
@@ -120,6 +163,16 @@ int main(void)
        usb = USBH_HID_GetUSBDev();
 
 
+
+    if (usb->keyboardusbhost!=NULL)
+    {
+    	if (KeyboardLedInit==0)
+    	{
+    		usb_keyboard_led_init(usb->keyboardusbhost);
+    		KeyboardLedInit++;
+    	}
+
+
     	k_pinfo = usb->keyboard ;
     	int i = 0;
 
@@ -138,9 +191,62 @@ int main(void)
     			keycode.keys[i] = k_pinfo->keys[i];
     		}
     		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    		amikb_process(&keycode);
-    	}
+    		stat = amikb_process(&keycode);
 
+
+    		switch (stat)
+    							{
+    								case LED_CAPS_LOCK_OFF:
+    									keyboard_led &= ~CAPS_LOCK_LED;
+    									do_led = 1;
+    									break;
+    								case LED_CAPS_LOCK_ON:
+    									keyboard_led |= CAPS_LOCK_LED;
+    									do_led = 1;
+    									break;
+    								case LED_NUM_LOCK_OFF:
+    									keyboard_led &= ~NUM_LOCK_LED;
+    									do_led = 1;
+    									break;
+    								case LED_NUM_LOCK_ON:
+    									keyboard_led |= NUM_LOCK_LED;
+    									do_led = 1;
+    									break;
+    								case LED_SCROLL_LOCK_OFF:
+    									keyboard_led &= ~SCROLL_LOCK_LED;
+    									do_led = 1;
+    									break;
+    								case LED_SCROLL_LOCK_ON:
+    									keyboard_led |= SCROLL_LOCK_LED;
+    									do_led = 1;
+    									break;
+    								case LED_RESET_BLINK:
+    									usb_keyboard_led_init(usb->keyboardusbhost);
+    									do_led = 0;
+    									break;
+    								default:
+    								case NO_LED:
+    									do_led = 0;
+    									break;
+    							}
+    							// ...and let the led management to be done!
+    							if (do_led)
+    							{
+    								usb_keyboard_led(usb->keyboardusbhost, keyboard_led);
+    							}
+
+
+
+
+
+    	}
+    }
+    else
+    {
+    	KeyboardLedInit = 0;
+    }
+    //clear usbDevHost
+    usb->keyboardusbhost = NULL;
 
   }
   /* USER CODE END 3 */

@@ -102,18 +102,22 @@ if (HSReady==1)
 		  	  case REPORT_TYPE_KEYBOARD:
 			  {
 		  		usbDev.keyboard = USBH_HID_GetKeybdInfo(&hUsbHostHS);
+		  		usbDev.keyboardusbhost = &hUsbHostHS;
+		  		usbDev.kbd_int=0;
 			  }
 			  break;
 
 		  	  case REPORT_TYPE_MOUSE:
 		  	  {
 		  		usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostHS);
+		  		usbDev.keyboardusbhost = NULL;
 		  	  }
 		  	 break;
 
 		  	 case REPORT_TYPE_JOYSTICK:
 		      {
 		    	  usbDev.gamepad1 = USBH_HID_GetGamepadInfo(&hUsbHostHS);
+		    	  usbDev.keyboardusbhost = NULL;
 		  	   }
 		      break;
 
@@ -133,18 +137,22 @@ if (HSReady==1)
 			case REPORT_TYPE_KEYBOARD:
 			{
 				usbDev.keyboard = USBH_HID_GetKeybdInfo(&hUsbHostHS);
+				usbDev.keyboardusbhost = &hUsbHostHS;
+			    usbDev.kbd_int=1;
 			}
 			break;
 
 			case REPORT_TYPE_MOUSE:
 			{
 				usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostHS);
+				usbDev.keyboardusbhost = NULL;
 			}
 			break;
 
 			case REPORT_TYPE_JOYSTICK:
 			{
 				usbDev.gamepad2 = USBH_HID_GetGamepadInfo(&hUsbHostHS);
+				usbDev.keyboardusbhost = NULL;
 			}
 			break;
 
@@ -156,6 +164,8 @@ if (HSReady==1)
 
 
 }
+
+
 
 if (FSReady==1)
 {
@@ -173,18 +183,22 @@ if (FSReady==1)
 		  	  case REPORT_TYPE_KEYBOARD:
 			  {
 		  		usbDev.keyboard = USBH_HID_GetKeybdInfo(&hUsbHostFS);
+		  		usbDev.keyboardusbhost = &hUsbHostFS;
+		  		usbDev.kbd_int=0;
 			  }
 			  break;
 
 		  	  case REPORT_TYPE_MOUSE:
 		  	  {
 		  		usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostFS);
+		  		usbDev.keyboardusbhost = NULL;
 		  	  }
 		  	 break;
 
 		  	 case REPORT_TYPE_JOYSTICK:
 		      {
 		    	  usbDev.gamepad2 = USBH_HID_GetGamepadInfo(&hUsbHostFS);
+		    	  usbDev.keyboardusbhost = NULL;
 		  	   }
 		      break;
 
@@ -202,18 +216,22 @@ if (FSReady==1)
 			case REPORT_TYPE_KEYBOARD:
 			{
 				usbDev.keyboard = USBH_HID_GetKeybdInfo(&hUsbHostFS);
+				usbDev.keyboardusbhost = &hUsbHostFS;
+				usbDev.kbd_int=1;
 			}
 			break;
 
 			case REPORT_TYPE_MOUSE:
 			{
 				usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostFS);
+				usbDev.keyboardusbhost = NULL;
 			}
 			break;
 
 			case REPORT_TYPE_JOYSTICK:
 			{
 				usbDev.gamepad1 = USBH_HID_GetGamepadInfo(&hUsbHostFS);
+				usbDev.keyboardusbhost = NULL;
 			}
 			break;
 
