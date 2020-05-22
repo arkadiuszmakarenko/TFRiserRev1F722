@@ -931,7 +931,7 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 	//amikb_direction( DAT_INPUT );
 
 	//mdelay(5);	// handshake wait 500msec
-	HAL_Delay(20);
+	HAL_Delay(5);
 	// The following instructions should be useless as the port has been configured as input few
 	// lines above... :-/
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin,  GPIO_PIN_SET); // Set KBD_DATA pin
@@ -975,6 +975,7 @@ led_status_t amikb_process(keyboard_code_t *data)
 {
 	static int maybe_reset = 0;
 	int i;
+	int j;
 	led_status_t rval = NO_LED; /* 0 means no USB interaction such as leds, ... */
 	static keyboard_code_t prevkeycode = {
 		.lctrl          = 0,
@@ -1148,51 +1149,105 @@ led_status_t amikb_process(keyboard_code_t *data)
 			maybe_reset--;
 	}
 
+
+
 	// Send all pressed key
+	uint8_t keysToPress[KEY_PRESSED_MAX] = {0};
+	uint8_t keysToRelease[KEY_PRESSED_MAX] = {0} ;
+
+	int idxPress= 0;
+	int idxRelease = 0;
+
+	//Find keys to release
 	for (i = 0; i < KEY_PRESSED_MAX; i++)
 	{
-		if (prevkeycode.keys[i] != data->keys[i])
+		int found = 0;
+		for (j = 0; j < KEY_PRESSED_MAX; j++)
 		{
-			prevkeycode.keyspressed[i] = !prevkeycode.keyspressed[i];
-			//DBG_V("Keycode: 0x%02x -- %s\r\n", data->keys[i],
-			//	prevkeycode.keyspressed[i] == 1 ? "PRESSED" : "RELEASED");
-			if (data->keys[i] != prevkeycode.keys[i])
+			if (prevkeycode.keys[i] == data->keys[j] )
 			{
-				if (data->keys[i] == 0x00) // Previous key was released
-				{
-					//DBG_V("Sending the KEY_RELEASE for OLD Keycode: 0x%02x\r\n",
-					//	prevkeycode.keys[i]);
-					rval |= amikb_send(scancode_to_amiga(prevkeycode.keys[i]), 0 /* Released */);
-				}
-				else
-				{
-					//DBG_V("Sending the KEY_PRESS for NEW Keycode: 0x%02x\r\n",
-						///data->keys[i]);
-					rval |= amikb_send(scancode_to_amiga(data->keys[i]), 1 /* Pressed */);
-					if (data->keys[i] == KEY_DELETE)
-					{
-						//DBG_V("MAY BE RESET (KEY DELETE) ??? %d\r\n", maybe_reset);
-						maybe_reset++;
-					}
-					else
-					if (maybe_reset > 0)
-						maybe_reset--;
-				}
-				prevkeycode.keys[i] = data->keys[i];
+				found = 1;
+			}
+		}
+
+		if(found == 0)
+		{
+		keysToRelease[idxRelease] = prevkeycode.keys[i];
+		idxRelease++;
+		}
+
+	}
+
+	//Find keys to press (not already pressed)
+	for (i = 0; i < KEY_PRESSED_MAX; i++)
+	{
+		int found = 0;
+		for (j = 0; j < KEY_PRESSED_MAX; j++)
+		{
+			if ( data->keys[i] == prevkeycode.keys[j])
+			{
+				found = 1;
+			}
+
+
+		}
+
+		 if (found == 0)
+		 {
+			keysToPress[idxPress] = data->keys[i];
+			idxPress++;
+		 }
+	}
+
+	//Send release keys
+	for (i = 0; i < KEY_PRESSED_MAX; i++)
+	{
+		if (keysToRelease[i] != 0x00) // Previous key was released
+		{
+	        rval |= amikb_send(scancode_to_amiga(keysToRelease[i]), 0 /* Released */);
+	    }
+	}
+
+	//send press keys
+	for (i = 0; i < KEY_PRESSED_MAX; i++)
+	{
+
+		if (keysToPress[i] != 0x00)
+		{
+		rval |= amikb_send(scancode_to_amiga(keysToPress[i]), 1 /* Pressed */);
+
+		if (keysToPress[i] == KEY_DELETE)
+		{
+			maybe_reset++;
+		}
+		else if (maybe_reset > 0)
+			{
+			maybe_reset--;
 			}
 		}
 	}
 
+
+
+	//copy keys for next handling
+	for (i = 0; i < KEY_PRESSED_MAX; i++)
+		{
+		   prevkeycode.keys[i] = data->keys[i];
+
+		}
+
 	//DBG_V("MAY BE RESET TOTAL??? %d\r\n", maybe_reset);
 	if (maybe_reset >= OK_RESET)
 	{
-		//DBG_I("#### <SYSTEM RESET> ####\r\n");
+
 		amikb_reset();
 		rval = LED_RESET_BLINK;
 		maybe_reset = 0;
 	}
 
-	//DBG_N("Exit with rval: %d\r\n", rval);
+
+
+
 	return rval;
 }
 
