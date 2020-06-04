@@ -160,12 +160,12 @@ int main(void)
 
     MX_USB_HOST_Process();
 
-       usb = USBH_HID_GetUSBDev();
-
+       usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
 
 
     if (usb->keyboardusbhost!=NULL)
     {
+    	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
     	if (KeyboardLedInit==0)
     	{
     		usb_keyboard_led_init(usb->keyboardusbhost);
@@ -246,6 +246,7 @@ int main(void)
     else
     {
     	//Keyboard is deinit.
+    	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
     	KeyboardLedInit = 0;
 
     }
@@ -270,7 +271,7 @@ void SystemClock_Config(void)
   /** Configure the main internal regulator output voltage 
   */
   __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
   /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;

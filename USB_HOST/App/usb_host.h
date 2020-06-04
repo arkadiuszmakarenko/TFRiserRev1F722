@@ -38,8 +38,7 @@
    uint8_t *gamepad1;
    uint8_t *gamepad2;
    HID_KEYBD_Info_TypeDef *keyboard;
-   USBH_HandleTypeDef *keyboardusbhost;
-   uint8_t kbd_int;
+   USBH_HandleTypeDef* keyboardusbhost;
    HID_MOUSE_Info_TypeDef *mouse;
 
  }
@@ -84,7 +83,7 @@ typedef enum {
 void MX_USB_HOST_Init(void);
 
 void MX_USB_HOST_Process(void);
-
+HID_USBDevicesTypeDef* USBH_HID_GetUSBDev();
 /**
   * @}
   */

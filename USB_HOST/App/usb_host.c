@@ -103,7 +103,6 @@ if (HSReady==1)
 			  {
 		  		usbDev.keyboard = USBH_HID_GetKeybdInfo(&hUsbHostHS);
 		  		usbDev.keyboardusbhost = &hUsbHostHS;
-		  		usbDev.kbd_int=0;
 			  }
 			  break;
 
@@ -138,21 +137,18 @@ if (HSReady==1)
 			{
 				usbDev.keyboard = USBH_HID_GetKeybdInfo(&hUsbHostHS);
 				usbDev.keyboardusbhost = &hUsbHostHS;
-			    usbDev.kbd_int=1;
 			}
 			break;
 
 			case REPORT_TYPE_MOUSE:
 			{
 				usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostHS);
-				usbDev.keyboardusbhost = NULL;
 			}
 			break;
 
 			case REPORT_TYPE_JOYSTICK:
 			{
 				usbDev.gamepad2 = USBH_HID_GetGamepadInfo(&hUsbHostHS);
-				usbDev.keyboardusbhost = NULL;
 			}
 			break;
 
@@ -184,21 +180,18 @@ if (FSReady==1)
 			  {
 		  		usbDev.keyboard = USBH_HID_GetKeybdInfo(&hUsbHostFS);
 		  		usbDev.keyboardusbhost = &hUsbHostFS;
-		  		usbDev.kbd_int=0;
 			  }
 			  break;
 
 		  	  case REPORT_TYPE_MOUSE:
 		  	  {
 		  		usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostFS);
-		  		usbDev.keyboardusbhost = NULL;
 		  	  }
 		  	 break;
 
 		  	 case REPORT_TYPE_JOYSTICK:
 		      {
 		    	  usbDev.gamepad2 = USBH_HID_GetGamepadInfo(&hUsbHostFS);
-		    	  usbDev.keyboardusbhost = NULL;
 		  	   }
 		      break;
 
@@ -217,7 +210,6 @@ if (FSReady==1)
 			{
 				usbDev.keyboard = USBH_HID_GetKeybdInfo(&hUsbHostFS);
 				usbDev.keyboardusbhost = &hUsbHostFS;
-				usbDev.kbd_int=1;
 			}
 			break;
 
@@ -243,7 +235,7 @@ if (FSReady==1)
 
 }}
 
-uint8_t *USBH_HID_GetUSBDev()
+HID_USBDevicesTypeDef* USBH_HID_GetUSBDev()
 {
 		return &usbDev;
 }
@@ -319,6 +311,7 @@ static void USBH_UserProcess1  (USBH_HandleTypeDef *phost, uint8_t id)
   case HOST_USER_DISCONNECTION:
   Appli_state = APPLICATION_DISCONNECT;
   HSReady = 0;
+  memset (&usbDev, 0, sizeof(HID_USBDevicesTypeDef));
   break;
 
   case HOST_USER_CLASS_ACTIVE:
@@ -347,6 +340,7 @@ static void USBH_UserProcess2  (USBH_HandleTypeDef *phost, uint8_t id)
   case HOST_USER_DISCONNECTION:
   Appli_state = APPLICATION_DISCONNECT;
   FSReady = 0;
+  memset (&usbDev, 0, sizeof(HID_USBDevicesTypeDef));
   break;
 
   case HOST_USER_CLASS_ACTIVE:
