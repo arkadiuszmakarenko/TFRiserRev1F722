@@ -71,7 +71,7 @@ void MX_USB_HOST_Process(void);
 /* USER CODE BEGIN 0 */
 
 
-/* USER CODE END 0 */
+
 static void usb_keyboard_led(USBH_HandleTypeDef *usbhost, keyboard_led_t ld)
 {
 	keyboard_led_t led = ld;
@@ -107,6 +107,10 @@ static void usb_keyboard_led_init(USBH_HandleTypeDef * usbhost)
 		usb_keyboard_led(usbhost, 0);
 	}
 }
+
+
+
+/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
@@ -151,7 +155,12 @@ int main(void)
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
-   keyboard_code_t keycode = {0};
+  keyboard_code_t keycode = {0};
+
+
+
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -161,12 +170,16 @@ int main(void)
 
     MX_USB_HOST_Process();
 
+    /* USER CODE END WHILE */
+    MX_USB_HOST_Process();
+
+    /* USER CODE BEGIN 3 */
+
        usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
 
 
     if (usb->keyboardusbhost!=NULL)
     {
-    	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
     	if (KeyboardLedInit==0)
     	{
     		usb_keyboard_led_init(usb->keyboardusbhost);
@@ -238,25 +251,31 @@ int main(void)
     								usb_keyboard_led(usb->keyboardusbhost, keyboard_led);
     							}
 
-
-
-
-
     	}
     }
     else
     {
     	//Keyboard is deinit.
-    	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+
     	KeyboardLedInit = 0;
 
     }
     //clear usbDevHost
     usb->keyboardusbhost = NULL;
-    /* USER CODE END WHILE */
 
 
-    /* USER CODE BEGIN 3 */
+
+    if(usb->mouse!=NULL)
+    {
+    	HAL_GPIO_WritePin(INTSIG1_GPIO_Port, INTSIG1_Pin, GPIO_PIN_SET);
+    	DWT_Delay(1);
+    	HAL_GPIO_WritePin(INTSIG1_GPIO_Port, INTSIG1_Pin, GPIO_PIN_RESET);
+
+    }
+
+
+
+
   }
   /* USER CODE END 3 */
 }
@@ -369,35 +388,32 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_0 
-                          |GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_4|GPIO_PIN_6 
-                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10 
-                          |GPIO_PIN_11, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, INTSIG8_Pin|RW_Pin|DSACK0_Pin|FIRE1_Pin 
+                          |GPIO_PIN_1|GPIO_PIN_2|INTSIG4_Pin|INTSIG5_Pin 
+                          |INTSIG6_Pin|INTSIG7_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3 
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7 
-                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_15, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|DKWE_Pin|FIRE0_Pin 
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|DKRD_Pin 
+                          |DKWD_Pin|GPIO_PIN_9|GPIO_PIN_10|INTSIG3_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10 
-                          |GPIO_PIN_12|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5 
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, D0_Pin|D1_Pin|D2_Pin|GPIO_PIN_10 
+                          |LED2_Pin|D3_Pin|D4_Pin|D5_Pin 
+                          |D6_Pin|D7_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, KBD_CLOCK_Pin|LED2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PC13 PC14 PC15 PC0 
-                           PC1 PC2 PC4 PC6 
-                           PC7 PC8 PC9 PC10 
-                           PC11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_0 
-                          |GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_4|GPIO_PIN_6 
-                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10 
-                          |GPIO_PIN_11;
+  /*Configure GPIO pins : INTSIG8_Pin RW_Pin DSACK0_Pin FIRE1_Pin 
+                           PC1 PC2 INTSIG4_Pin INTSIG5_Pin 
+                           INTSIG6_Pin INTSIG7_Pin */
+  GPIO_InitStruct.Pin = INTSIG8_Pin|RW_Pin|DSACK0_Pin|FIRE1_Pin 
+                          |GPIO_PIN_1|GPIO_PIN_2|INTSIG4_Pin|INTSIG5_Pin 
+                          |INTSIG6_Pin|INTSIG7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -410,38 +426,119 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(KBD_DATA_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA2 PA3 
-                           PA4 PA5 PA6 PA7 
-                           PA8 PA9 PA10 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3 
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7 
-                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_15;
+  /*Configure GPIO pins : PA0 PA1 DKWE_Pin FIRE0_Pin 
+                           PA4 PA5 PA6 DKRD_Pin 
+                           DKWD_Pin PA9 PA10 INTSIG3_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|DKWE_Pin|FIRE0_Pin 
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|DKRD_Pin 
+                          |DKWD_Pin|GPIO_PIN_9|GPIO_PIN_10|INTSIG3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB2 PB10 
-                           PB12 PB3 PB4 PB5 
-                           PB6 PB7 PB8 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10 
-                          |GPIO_PIN_12|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5 
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
+  /*Configure GPIO pins : A0_Pin A1_Pin A2_Pin */
+  GPIO_InitStruct.Pin = A0_Pin|A1_Pin|A2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : D0_Pin D1_Pin D2_Pin D3_Pin 
+                           D4_Pin D5_Pin D6_Pin D7_Pin */
+  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin|D3_Pin 
+                          |D4_Pin|D5_Pin|D6_Pin|D7_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB10 LED2_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_10|LED2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : KBD_CLOCK_Pin LED2_Pin */
-  GPIO_InitStruct.Pin = KBD_CLOCK_Pin|LED2_Pin;
+  /*Configure GPIO pin : KBD_CLOCK_Pin */
+  GPIO_InitStruct.Pin = KBD_CLOCK_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(KBD_CLOCK_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : INTSIG2_Pin INTSIG1_Pin */
+  GPIO_InitStruct.Pin = INTSIG2_Pin|INTSIG1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BUSINT_Pin */
+  GPIO_InitStruct.Pin = BUSINT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BUSINT_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+
+	GPIO_InitTypeDef GPIO_Conf = {0};
+	uint8_t intsig1;
+	uint8_t intsig2;
+	uint8_t a0;
+
+	//read intsig1 and instig2
+	intsig1 = HAL_GPIO_ReadPin(INTSIG1_GPIO_Port, INTSIG1_Pin);
+	intsig2 = HAL_GPIO_ReadPin(INTSIG2_GPIO_Port, INTSIG2_Pin);
+	a0 = HAL_GPIO_ReadPin(A0_GPIO_Port, A0_Pin);
+
+
+
+
+	 GPIO_Conf.Pin = D0_Pin|D1_Pin|D2_Pin|D3_Pin|D4_Pin|D5_Pin|D6_Pin|D7_Pin;
+	 GPIO_Conf.Mode = GPIO_MODE_OUTPUT_PP;
+	 GPIO_Conf.Pull = GPIO_NOPULL;
+	 GPIO_Conf.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(GPIOB, &GPIO_Conf);
+
+	 HAL_GPIO_WritePin(INTSIG8_GPIO_Port, INTSIG8_Pin, GPIO_PIN_SET);
+	 asm("NOP");
+	 asm("NOP");
+	 HAL_GPIO_WritePin(INTSIG8_GPIO_Port, INTSIG8_Pin, GPIO_PIN_RESET);
+
+
+	  GPIO_Conf.Pin = D0_Pin|D1_Pin|D2_Pin|D3_Pin|D4_Pin|D5_Pin|D6_Pin|D7_Pin;
+	  GPIO_Conf.Mode = GPIO_MODE_OUTPUT_OD;
+	  GPIO_Conf.Pull = GPIO_NOPULL;
+	  GPIO_Conf.Speed = GPIO_SPEED_FREQ_LOW;
+	  HAL_GPIO_Init(GPIOB, &GPIO_Conf);
+
+		 HAL_GPIO_WritePin(INTSIG8_GPIO_Port, INTSIG8_Pin, GPIO_PIN_SET);
+		 asm("NOP");
+		 asm("NOP");
+		 HAL_GPIO_WritePin(INTSIG8_GPIO_Port, INTSIG8_Pin, GPIO_PIN_RESET);
+
+	  HAL_GPIO_WritePin(GPIOB, D0_Pin|D1_Pin|D2_Pin|D3_Pin|D4_Pin|D5_Pin|D6_Pin|D7_Pin, GPIO_PIN_SET);
+
+
+
+
+
+
+HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+
+
+}
+
+
+
 
 /* USER CODE END 4 */
 
