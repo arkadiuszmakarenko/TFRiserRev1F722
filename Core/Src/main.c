@@ -168,10 +168,9 @@ int main(void)
   while (1)
   {
 
-    MX_USB_HOST_Process();
 
     /* USER CODE END WHILE */
-    MX_USB_HOST_Process();
+	  MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
 
@@ -290,11 +289,11 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage 
+  /** Configure the main internal regulator output voltage
   */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
@@ -308,13 +307,13 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Activate the Over-Drive mode 
+  /** Activate the Over-Drive mode
   */
   if (HAL_PWREx_EnableOverDrive() != HAL_OK)
   {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -388,31 +387,31 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, INTSIG8_Pin|RW_Pin|DSACK0_Pin|FIRE1_Pin 
-                          |GPIO_PIN_1|GPIO_PIN_2|INTSIG4_Pin|INTSIG5_Pin 
+  HAL_GPIO_WritePin(GPIOC, INTSIG8_Pin|RW_Pin|DSACK0_Pin|FIRE1_Pin
+                          |GPIO_PIN_1|GPIO_PIN_2|INTSIG4_Pin|INTSIG5_Pin
                           |INTSIG6_Pin|INTSIG7_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|DKWE_Pin|FIRE0_Pin 
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|DKRD_Pin 
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|DKWE_Pin|FIRE0_Pin
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|DKRD_Pin
                           |DKWD_Pin|GPIO_PIN_9|GPIO_PIN_10|INTSIG3_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, D0_Pin|D1_Pin|D2_Pin|GPIO_PIN_10 
-                          |LED2_Pin|D3_Pin|D4_Pin|D5_Pin 
+  HAL_GPIO_WritePin(GPIOB, D0_Pin|D1_Pin|D2_Pin|GPIO_PIN_10
+                          |LED2_Pin|D3_Pin|D4_Pin|D5_Pin
                           |D6_Pin|D7_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : INTSIG8_Pin RW_Pin DSACK0_Pin FIRE1_Pin 
-                           PC1 PC2 INTSIG4_Pin INTSIG5_Pin 
+  /*Configure GPIO pins : INTSIG8_Pin RW_Pin DSACK0_Pin FIRE1_Pin
+                           PC1 PC2 INTSIG4_Pin INTSIG5_Pin
                            INTSIG6_Pin INTSIG7_Pin */
-  GPIO_InitStruct.Pin = INTSIG8_Pin|RW_Pin|DSACK0_Pin|FIRE1_Pin 
-                          |GPIO_PIN_1|GPIO_PIN_2|INTSIG4_Pin|INTSIG5_Pin 
+  GPIO_InitStruct.Pin = INTSIG8_Pin|RW_Pin|DSACK0_Pin|FIRE1_Pin
+                          |GPIO_PIN_1|GPIO_PIN_2|INTSIG4_Pin|INTSIG5_Pin
                           |INTSIG6_Pin|INTSIG7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -426,11 +425,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(KBD_DATA_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 DKWE_Pin FIRE0_Pin 
-                           PA4 PA5 PA6 DKRD_Pin 
+  /*Configure GPIO pins : PA0 PA1 DKWE_Pin FIRE0_Pin
+                           PA4 PA5 PA6 DKRD_Pin
                            DKWD_Pin PA9 PA10 INTSIG3_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|DKWE_Pin|FIRE0_Pin 
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|DKRD_Pin 
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|DKWE_Pin|FIRE0_Pin
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|DKRD_Pin
                           |DKWD_Pin|GPIO_PIN_9|GPIO_PIN_10|INTSIG3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -443,9 +442,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : D0_Pin D1_Pin D2_Pin D3_Pin 
+  /*Configure GPIO pins : D0_Pin D1_Pin D2_Pin D3_Pin
                            D4_Pin D5_Pin D6_Pin D7_Pin */
-  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin|D3_Pin 
+  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin|D3_Pin
                           |D4_Pin|D5_Pin|D6_Pin|D7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -563,7 +562,7 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */

@@ -973,7 +973,7 @@ bool amikb_reset_check(void)
 
 led_status_t amikb_process(keyboard_code_t *data)
 {
-	static int maybe_reset = 0;
+	int maybe_reset = 0;
 	int i;
 	int j;
 	led_status_t rval = NO_LED; /* 0 means no USB interaction such as leds, ... */
