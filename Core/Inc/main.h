@@ -58,22 +58,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define INTSIG8_Pin GPIO_PIN_13
-#define INTSIG8_GPIO_Port GPIOC
 #define RW_Pin GPIO_PIN_14
 #define RW_GPIO_Port GPIOC
-#define FIRE1_Pin GPIO_PIN_0
-#define FIRE1_GPIO_Port GPIOC
 #define KBD_DATA_Pin GPIO_PIN_3
 #define KBD_DATA_GPIO_Port GPIOC
-#define DKWE_Pin GPIO_PIN_2
-#define DKWE_GPIO_Port GPIOA
-#define FIRE0_Pin GPIO_PIN_3
-#define FIRE0_GPIO_Port GPIOA
-#define DKRD_Pin GPIO_PIN_7
-#define DKRD_GPIO_Port GPIOA
-#define A0_Pin GPIO_PIN_4
-#define A0_GPIO_Port GPIOC
 #define KBD_CLOCK_Pin GPIO_PIN_11
 #define KBD_CLOCK_GPIO_Port GPIOB
 #define INTSIG2_Pin GPIO_PIN_12
@@ -81,26 +69,16 @@ void Error_Handler(void);
 #define INTSIG2_EXTI_IRQn EXTI15_10_IRQn
 #define LED2_Pin GPIO_PIN_13
 #define LED2_GPIO_Port GPIOB
-#define A1_Pin GPIO_PIN_6
-#define A1_GPIO_Port GPIOC
 #define A2_Pin GPIO_PIN_7
 #define A2_GPIO_Port GPIOC
-#define INTSIG4_Pin GPIO_PIN_8
-#define INTSIG4_GPIO_Port GPIOC
 #define INTSIG5_Pin GPIO_PIN_9
 #define INTSIG5_GPIO_Port GPIOC
-#define DKWD_Pin GPIO_PIN_8
-#define DKWD_GPIO_Port GPIOA
 #define A4_Pin GPIO_PIN_10
 #define A4_GPIO_Port GPIOA
 #define INTSIG3_Pin GPIO_PIN_15
 #define INTSIG3_GPIO_Port GPIOA
-#define INTSIG6_Pin GPIO_PIN_10
-#define INTSIG6_GPIO_Port GPIOC
 #define INTSIG7_Pin GPIO_PIN_11
 #define INTSIG7_GPIO_Port GPIOC
-#define INTSIG1_Pin GPIO_PIN_9
-#define INTSIG1_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 

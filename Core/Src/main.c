@@ -53,8 +53,6 @@
 
 RTC_HandleTypeDef hrtc;
 
-UART_HandleTypeDef huart5;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -62,7 +60,6 @@ UART_HandleTypeDef huart5;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_UART5_Init(void);
 static void MX_RTC_Init(void);
 void MX_USB_HOST_Process(void);
 
@@ -149,7 +146,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_UART5_Init();
   MX_USB_HOST_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
@@ -274,9 +270,7 @@ int main(void)
 
     if(usb->mouse!=NULL)
     {
-    	//HAL_GPIO_WritePin(INTSIG1_GPIO_Port, INTSIG1_Pin, GPIO_PIN_SET);
-    	DWT_Delay(1);
-    	HAL_GPIO_WritePin(INTSIG1_GPIO_Port, INTSIG1_Pin, GPIO_PIN_RESET);
+
 
     }
 
@@ -336,10 +330,8 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_UART5
-                              |RCC_PERIPHCLK_CLK48;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_CLK48;
   PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-  PeriphClkInitStruct.Uart5ClockSelection = RCC_UART5CLKSOURCE_PCLK1;
   PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
@@ -411,41 +403,6 @@ static void MX_RTC_Init(void)
 }
 
 /**
-  * @brief UART5 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_UART5_Init(void)
-{
-
-  /* USER CODE BEGIN UART5_Init 0 */
-
-  /* USER CODE END UART5_Init 0 */
-
-  /* USER CODE BEGIN UART5_Init 1 */
-
-  /* USER CODE END UART5_Init 1 */
-  huart5.Instance = UART5;
-  huart5.Init.BaudRate = 115200;
-  huart5.Init.WordLength = UART_WORDLENGTH_8B;
-  huart5.Init.StopBits = UART_STOPBITS_1;
-  huart5.Init.Parity = UART_PARITY_NONE;
-  huart5.Init.Mode = UART_MODE_TX_RX;
-  huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart5.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart5.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart5.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart5) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN UART5_Init 2 */
-
-  /* USER CODE END UART5_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -457,34 +414,26 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, INTSIG8_Pin|RW_Pin|FIRE1_Pin|GPIO_PIN_1
-                          |GPIO_PIN_2|KBD_DATA_Pin|INTSIG6_Pin|INTSIG7_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, RW_Pin|KBD_DATA_Pin|INTSIG7_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DKWE_Pin|FIRE0_Pin|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6|DKRD_Pin|DKWD_Pin|GPIO_PIN_9
-                          |INTSIG3_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|KBD_CLOCK_Pin
+                          |LED2_Pin|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
+                          |GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(INTSIG3_GPIO_Port, INTSIG3_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10|KBD_CLOCK_Pin|LED2_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pins : INTSIG8_Pin RW_Pin FIRE1_Pin PC1
-                           PC2 INTSIG6_Pin */
-  GPIO_InitStruct.Pin = INTSIG8_Pin|RW_Pin|FIRE1_Pin|GPIO_PIN_1
-                          |GPIO_PIN_2|INTSIG6_Pin;
+  /*Configure GPIO pin : RW_Pin */
+  GPIO_InitStruct.Pin = RW_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(RW_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : KBD_DATA_Pin INTSIG7_Pin */
   GPIO_InitStruct.Pin = KBD_DATA_Pin|INTSIG7_Pin;
@@ -493,31 +442,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DKWE_Pin FIRE0_Pin PA4 PA5
-                           PA6 DKRD_Pin DKWD_Pin PA9
-                           INTSIG3_Pin */
-  GPIO_InitStruct.Pin = DKWE_Pin|FIRE0_Pin|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6|DKRD_Pin|DKWD_Pin|GPIO_PIN_9
-                          |INTSIG3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : A0_Pin A1_Pin A2_Pin INTSIG4_Pin
-                           INTSIG5_Pin */
-  GPIO_InitStruct.Pin = A0_Pin|A1_Pin|A2_Pin|INTSIG4_Pin
-                          |INTSIG5_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB0 PB1 PB2 PB10
-                           LED2_Pin PB3 PB4 PB5
-                           PB6 PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
-                          |LED2_Pin|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6|GPIO_PIN_7;
+  /*Configure GPIO pins : PB0 PB1 PB2 LED2_Pin
+                           PB3 PB4 PB5 PB6
+                           PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|LED2_Pin
+                          |GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
+                          |GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -536,17 +466,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(INTSIG2_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : A2_Pin INTSIG5_Pin */
+  GPIO_InitStruct.Pin = A2_Pin|INTSIG5_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   /*Configure GPIO pin : A4_Pin */
   GPIO_InitStruct.Pin = A4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(A4_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : INTSIG1_Pin */
-  GPIO_InitStruct.Pin = INTSIG1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pin : INTSIG3_Pin */
+  GPIO_InitStruct.Pin = INTSIG3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(INTSIG1_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(INTSIG3_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
@@ -652,7 +589,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 
 			GPIOB->OTYPER = 0xFF; //Set up data GPIOB in open-drain mode.
-			GPIOB->BSRR = 0x00000000; ////Set Data pins to default state
+			GPIOB->BSRR = 0x0000FFFF; ////Set Data pins to default state
 
 		}
 		else
