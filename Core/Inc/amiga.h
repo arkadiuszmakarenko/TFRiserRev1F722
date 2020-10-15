@@ -8,23 +8,14 @@
 #define KEY_PRESSED_MAX 6
 typedef struct {
 	int lctrl;
-	int lctrlpressed;
 	int lshift;
-	int lshiftpressed;
 	int lalt;
-	int laltpressed;
 	int lgui;
-	int lguipressed;
 	int rctrl;
-	int rctrlpressed;
 	int rshift;
-	int rshiftpressed;
 	int ralt;
-	int raltpressed;
 	int rgui;
-	int rguipressed;
 	uint8_t keys[KEY_PRESSED_MAX];
-	uint8_t keyspressed[KEY_PRESSED_MAX];
 } keyboard_code_t;
 
 typedef enum {
