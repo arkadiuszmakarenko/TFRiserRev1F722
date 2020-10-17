@@ -1,0 +1,10 @@
+2020-09-19 18:41:50,354 [INFO] Activator:176 - 
+
+
+2020-09-19 18:41:50,357 [INFO] Activator:177 - !SESSION log4j initialized
+2020-09-19 18:42:02,798 [INFO] RetryExec:97 - I/O exception (java.io.IOException) caught when processing request to {s}->https://download.eclipse.org:443: Stream closed.
+2020-09-19 18:42:02,801 [INFO] RetryExec:113 - Retrying request to {s}->https://download.eclipse.org:443
+2020-09-19 18:42:55,090 [INFO] Activator:176 - 
+
+
+2020-09-19 18:42:55,094 [INFO] Activator:177 - !SESSION log4j initialized

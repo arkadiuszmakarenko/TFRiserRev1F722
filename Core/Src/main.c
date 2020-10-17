@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "dwt_delay.h"
 #include "amiga.h"
+#include "rtc_msm6242.h"
 
 /* USER CODE END Includes */
 
@@ -152,7 +153,7 @@ int main(void)
   DWT_Init();
 
  // amikb_startup();
-  amikb_ready(0);
+  //amikb_ready(0);
 
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
@@ -178,7 +179,8 @@ int main(void)
     //process RTC
 
 
-       usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
+
+     usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
 
 
     if (usb->keyboardusbhost!=NULL)
@@ -377,9 +379,9 @@ static void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = 0x6;
-  sTime.Minutes = 0x25;
-  sTime.Seconds = 0x55;
+  sTime.Hours = 0x1;
+  sTime.Minutes = 0x1;
+  sTime.Seconds = 0x1;
   sTime.TimeFormat = RTC_HOURFORMAT12_AM;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
@@ -389,7 +391,7 @@ static void MX_RTC_Init(void)
   }
   sDate.WeekDay = RTC_WEEKDAY_MONDAY;
   sDate.Month = RTC_MONTH_JANUARY;
-  sDate.Date = 0x15;
+  sDate.Date = 0x01;
   sDate.Year = 0x20;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
@@ -421,12 +423,12 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, RW_Pin|KBD_DATA_Pin|INTSIG7_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|KBD_CLOCK_Pin
-                          |LED2_Pin|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, D0_Pin|D1_Pin|D2_Pin|KBD_CLOCK_Pin
+                          |LED2_Pin|D3_Pin|D4_Pin|D5_Pin
+                          |D6_Pin|D7_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(INTSIG3_GPIO_Port, INTSIG3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(INTSIG3_GPIO_Port, INTSIG3_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : RW_Pin */
   GPIO_InitStruct.Pin = RW_Pin;
@@ -442,29 +444,29 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB2 LED2_Pin
-                           PB3 PB4 PB5 PB6
-                           PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|LED2_Pin
-                          |GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
-                          |GPIO_PIN_7;
+  /*Configure GPIO pins : D0_Pin D1_Pin D2_Pin KBD_CLOCK_Pin
+                           D3_Pin D4_Pin D5_Pin D6_Pin
+                           D7_Pin */
+  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin|KBD_CLOCK_Pin
+                          |D3_Pin|D4_Pin|D5_Pin|D6_Pin
+                          |D7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : KBD_CLOCK_Pin */
-  GPIO_InitStruct.Pin = KBD_CLOCK_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(KBD_CLOCK_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : INTSIG2_Pin */
   GPIO_InitStruct.Pin = INTSIG2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(INTSIG2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED2_Pin */
+  GPIO_InitStruct.Pin = LED2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : A2_Pin INTSIG5_Pin */
   GPIO_InitStruct.Pin = A2_Pin|INTSIG5_Pin;
@@ -480,7 +482,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : INTSIG3_Pin */
   GPIO_InitStruct.Pin = INTSIG3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(INTSIG3_GPIO_Port, &GPIO_InitStruct);
@@ -493,92 +495,63 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+uint8_t ReadAddress()
+{
+					uint8_t address = 0;
+	                address =  HAL_GPIO_ReadPin(INTSIG5_GPIO_Port, INTSIG5_Pin);
+					address = (address<<1)|HAL_GPIO_ReadPin(A4_GPIO_Port, A4_Pin);
+					address = (address<<1)|HAL_GPIO_ReadPin(INTSIG3_GPIO_Port, INTSIG3_Pin);
+					address = (address<<1)|HAL_GPIO_ReadPin(A2_GPIO_Port, A2_Pin);
+					return address;
+}
+
+uint8_t ReadData()
+{
+	//reprogram gpio d0-7 for input
+	  GPIO_InitTypeDef GPIO_InitStruct = {0};
+	  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin
+	                       |D3_Pin|D4_Pin|D5_Pin|D6_Pin
+	                       |D7_Pin;
+	  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+		uint8_t data = 0;
+
+		data = HAL_GPIO_ReadPin(GPIOB, D7_Pin);
+		data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, D6_Pin);
+		data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, D5_Pin);
+		data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, D4_Pin);
+		data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, D3_Pin);
+		data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, D2_Pin);
+		data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, D1_Pin);
+		data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, D0_Pin);
+
+
+
+		//reprogram gpio d0-7 for output open drain
+	  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin
+	                       |D3_Pin|D4_Pin|D5_Pin|D6_Pin
+	                       |D7_Pin;
+	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	  	 return data;
+}
+
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-
-	if (GPIO_Pin == INTSIG2_Pin) //Process RTC
+	// GPIO_InitTypeDef GPIO_InitStruct = {0};
+	if (GPIO_Pin == INTSIG2_Pin&&HAL_GPIO_ReadPin(INTSIG2_GPIO_Port, INTSIG2_Pin)) //Process RTC
 		{
-
-				uint8_t address = 0;
-				uint8_t data = 0;
-			 	address =  HAL_GPIO_ReadPin(INTSIG5_GPIO_Port, INTSIG5_Pin);
-				address = (address<<1)|HAL_GPIO_ReadPin(A4_GPIO_Port, A4_Pin);
-				address = (address<<1)|HAL_GPIO_ReadPin(INTSIG3_GPIO_Port, INTSIG3_Pin);
-				address = (address<<1)|HAL_GPIO_ReadPin(A2_GPIO_Port, A2_Pin);
 
 		if(HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin))
 		{
 
-			 RTC_TimeTypeDef time = {0};
-			 RTC_DateTypeDef date = {0};
-			 HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
-			 HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
-
-
-			switch (address)
-			{
-				case 0x0:
-					data = time.Seconds%10;
-				break;
-				case 0x1:
-					data = (time.Seconds/10)%10;
-				break;
-
-				case 0x2:
-					data = time.Minutes%10;
-				break;
-
-				case 0x3:
-					data = (time.Minutes/10)%10;
-				break;
-
-				case 0x4:
-					data = time.Hours%10;
-				break;
-
-				case 0x5:
-					data = (time.Hours/10)%10;
-				break;
-
-				case 0x6:
-					data = date.Date%10;
-				break;
-
-				case 0x7:
-					data = (date.Date/10)%10;
-				break;
-
-				case 0x8:
-					data = date.Month%10;
-				break;
-
-				case 0x9:
-					data = (date.Month/10)%10;
-				break;
-
-				case 0xA:
-					data = date.Year%10;
-				break;
-
-				case 0xB:
-					data = (date.Year/10)%10;
-				break;
-
-				case 0xC:
-					data = date.WeekDay;
-				break;
-
-				//Control registeres to do
-				case 0xD:
-				break;
-
-				case 0xE:
-				break;
-
-				case 0xF:
-				break;
-
-			}
+			uint data = RTC_Read(ReadAddress(),&hrtc);
 			GPIOB->OTYPER = 0x00; //Set up Data GPIOB in pull-push mode.
 			//Put data on 8 bit section of databus
 			for (int i=0;i<8;i++)
@@ -590,41 +563,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 			GPIOB->OTYPER = 0xFF; //Set up data GPIOB in open-drain mode.
 			GPIOB->BSRR = 0x0000FFFF; ////Set Data pins to default state
-
 		}
 		else
 		{
-			 GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-			  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
-			                          |LED2_Pin|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
-			                          |GPIO_PIN_6|GPIO_PIN_7;
-			  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-			  GPIO_InitStruct.Pull = GPIO_NOPULL;
-			  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-
-						data = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7);
-						data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6);
-						data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5);
-						data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4);
-						data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3);
-						data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2);
-						data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
-						data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0);
-
-
-
-						  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
-						                          |LED2_Pin|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
-						                          |GPIO_PIN_6|GPIO_PIN_7;
-						  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-						  GPIO_InitStruct.Pull = GPIO_NOPULL;
-						  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-						  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-
+			RTC_Write(ReadAddress(), ReadData(),&hrtc);
 		}
+
 		}
 	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
