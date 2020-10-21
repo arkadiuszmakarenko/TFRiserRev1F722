@@ -297,6 +297,34 @@ int main(void)
     			joy0datL = joy0datL + ((usb->mouse->x)/2);
     			__enable_irq();
     }
+						//RIGHT = (*joymap&0x1);
+    					//LEFT = (*joymap>>1&0x1);
+    					//UP = (*joymap>>3&0x1);
+    					//DOWN = (*joymap>>2&0x1);
+
+    					//BTN1 =  (*joymap>>6&0x1);
+    				    //BTN2 =  (*joymap>>5&0x1);
+    					//BTN3 =  (*joymap>>4&0x1);
+    if(usb->gamepad2!=NULL)
+    {
+
+    	__disable_irq();
+    	joy1datH=0;
+    	joy1datL=0;
+
+    	if (*usb->gamepad2>>1&0x1)  joy1datH = 0xFF;
+    	if (*usb->gamepad2>>3&0x1)  joy1datH = 0x01;
+    	if (*usb->gamepad2>>1&0x1 && *usb->gamepad2>>3&0x1)  joy1datH = 0x02;
+
+
+    	if (*usb->gamepad2&0x1)  joy1datL = 0xFF;
+    	if (*usb->gamepad2>>2&0x1)  joy1datL = 0x01;
+    	if (*usb->gamepad2&0x1 && *usb->gamepad2>>2&0x1) joy1datL = 0x02;
+
+        __enable_irq();
+
+    }
+
 
 
 
@@ -658,12 +686,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 				if (address == 0xC)
 				{
-					WriteData(0x3);
+					WriteData(joy1datH);
 				}
 
-				if (address == 0xF)
+				if (address == 0xD || address == 0xF)
 				{
-					WriteData(0x4);
+					WriteData(joy1datL);
 				}
 
 
