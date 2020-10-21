@@ -40,6 +40,18 @@
  HID_KEYBD_Info_TypeDef *k_pinfo;
 
 
+ volatile int8_t joy0datH;
+ volatile int8_t joy0datL;
+ volatile int8_t joy1datH;
+ volatile int8_t joy1datL;
+
+ volatile int8_t ciaapraH;
+ volatile int8_t ciaapraL;
+
+ volatile int8_t POTGORH;
+ volatile int8_t POTGORL;
+
+
 
 
 
@@ -121,11 +133,15 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 	led_status_t stat;
+
 	uint8_t do_led = 0;
 	uint8_t KeyboardLedInit = 0;
 	static keyboard_led_t keyboard_led = 0;
 
-
+	 joy0datH=0;
+	 joy0datL=0;
+	 joy1datH=0;
+	 joy1datL=0;
 
   /* USER CODE END 1 */
 
@@ -152,14 +168,21 @@ int main(void)
   /* USER CODE BEGIN 2 */
   DWT_Init();
 
- // amikb_startup();
-  //amikb_ready(0);
+  amikb_startup();
+  amikb_ready(0);
 
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
   keyboard_code_t keycode = {0};
   HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
+
+
+	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
+
+
+	//set up clock
 
 
 
@@ -176,9 +199,6 @@ int main(void)
     MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
-    //process RTC
-
-
 
      usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
 
@@ -272,9 +292,15 @@ int main(void)
 
     if(usb->mouse!=NULL)
     {
-
-
+    			__disable_irq();
+    			joy0datH = joy0datH + ((usb->mouse->y)/2);
+    			joy0datL = joy0datL + ((usb->mouse->x)/2);
+    			__enable_irq();
     }
+
+
+
+
 
 
 
@@ -362,7 +388,7 @@ static void MX_RTC_Init(void)
   /** Initialize RTC Only
   */
   hrtc.Instance = RTC;
-  hrtc.Init.HourFormat = RTC_HOURFORMAT_12;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
   hrtc.Init.AsynchPrediv = 127;
   hrtc.Init.SynchPrediv = 255;
   hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
@@ -379,22 +405,21 @@ static void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = 0x1;
-  sTime.Minutes = 0x1;
-  sTime.Seconds = 0x1;
-  sTime.TimeFormat = RTC_HOURFORMAT12_AM;
+  sTime.Hours = 6;
+  sTime.Minutes = 25;
+  sTime.Seconds = 55;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
-  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
+  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
   {
     Error_Handler();
   }
   sDate.WeekDay = RTC_WEEKDAY_MONDAY;
   sDate.Month = RTC_MONTH_JANUARY;
-  sDate.Date = 0x01;
-  sDate.Year = 0x20;
+  sDate.Date = 15;
+  sDate.Year = 20;
 
-  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
+  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
   {
     Error_Handler();
   }
@@ -420,15 +445,22 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, RW_Pin|KBD_DATA_Pin|INTSIG7_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, RW_Pin|KBD_DATA_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, D0_Pin|D1_Pin|D2_Pin|KBD_CLOCK_Pin
-                          |LED2_Pin|D3_Pin|D4_Pin|D5_Pin
-                          |D6_Pin|D7_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, KBD_CLOCK_Pin|LED2_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(INTSIG3_GPIO_Port, INTSIG3_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : INTSIG8_Pin */
+  GPIO_InitStruct.Pin = INTSIG8_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(INTSIG8_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : RW_Pin */
   GPIO_InitStruct.Pin = RW_Pin;
@@ -437,29 +469,39 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(RW_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : KBD_DATA_Pin INTSIG7_Pin */
-  GPIO_InitStruct.Pin = KBD_DATA_Pin|INTSIG7_Pin;
+  /*Configure GPIO pin : KBD_DATA_Pin */
+  GPIO_InitStruct.Pin = KBD_DATA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(KBD_DATA_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : A0_Pin A1_Pin A2_Pin INTSIG5_Pin */
+  GPIO_InitStruct.Pin = A0_Pin|A1_Pin|A2_Pin|INTSIG5_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : D0_Pin D1_Pin D2_Pin KBD_CLOCK_Pin
-                           D3_Pin D4_Pin D5_Pin D6_Pin
-                           D7_Pin */
-  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin|KBD_CLOCK_Pin
-                          |D3_Pin|D4_Pin|D5_Pin|D6_Pin
-                          |D7_Pin;
+  /*Configure GPIO pins : D0_Pin D1_Pin D2_Pin D3_Pin
+                           D4_Pin D5_Pin D6_Pin D7_Pin */
+  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin|D3_Pin
+                          |D4_Pin|D5_Pin|D6_Pin|D7_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : KBD_CLOCK_Pin */
+  GPIO_InitStruct.Pin = KBD_CLOCK_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(KBD_CLOCK_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : INTSIG2_Pin */
-  GPIO_InitStruct.Pin = INTSIG2_Pin;
+  /*Configure GPIO pins : INTSIG2_Pin INTSIG1_Pin */
+  GPIO_InitStruct.Pin = INTSIG2_Pin|INTSIG1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(INTSIG2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LED2_Pin */
   GPIO_InitStruct.Pin = LED2_Pin;
@@ -467,12 +509,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED2_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : A2_Pin INTSIG5_Pin */
-  GPIO_InitStruct.Pin = A2_Pin|INTSIG5_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : A4_Pin */
   GPIO_InitStruct.Pin = A4_Pin;
@@ -487,7 +523,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(INTSIG3_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : INTSIG7_Pin */
+  GPIO_InitStruct.Pin = INTSIG7_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(INTSIG7_GPIO_Port, &GPIO_InitStruct);
+
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
@@ -495,7 +541,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-uint8_t ReadAddress()
+uint8_t ReadRTCAddress()
 {
 					uint8_t address = 0;
 	                address =  HAL_GPIO_ReadPin(INTSIG5_GPIO_Port, INTSIG5_Pin);
@@ -505,16 +551,29 @@ uint8_t ReadAddress()
 					return address;
 }
 
+
+uint8_t ReadAddress()
+{
+					uint8_t address = 0;
+	                address =  HAL_GPIO_ReadPin(INTSIG5_GPIO_Port, INTSIG5_Pin);
+					address = (address<<1)|HAL_GPIO_ReadPin(A4_GPIO_Port, A4_Pin);
+					address = (address<<1)|HAL_GPIO_ReadPin(INTSIG3_GPIO_Port, INTSIG3_Pin);
+					address = (address<<1)|HAL_GPIO_ReadPin(A2_GPIO_Port, A2_Pin);
+					address = (address<<1)|HAL_GPIO_ReadPin(A1_GPIO_Port, A1_Pin);
+					address = (address<<1)|HAL_GPIO_ReadPin(A0_GPIO_Port, A0_Pin);
+					return address;
+}
+
 uint8_t ReadData()
 {
-	//reprogram gpio d0-7 for input
-	  GPIO_InitTypeDef GPIO_InitStruct = {0};
-	  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin
-	                       |D3_Pin|D4_Pin|D5_Pin|D6_Pin
-	                       |D7_Pin;
-	  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	  GPIO_InitStruct.Pull = GPIO_NOPULL;
-	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	//make sure gpio d0-7 for input
+	//  GPIO_InitTypeDef GPIO_InitStruct = {0};
+	//  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin
+	//                       |D3_Pin|D4_Pin|D5_Pin|D6_Pin
+	//                       |D7_Pin;
+	//  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	//  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	//  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 		uint8_t data = 0;
 
@@ -528,48 +587,112 @@ uint8_t ReadData()
 		data = (data<<1)|HAL_GPIO_ReadPin(GPIOB, D0_Pin);
 
 
-
-		//reprogram gpio d0-7 for output open drain
-	  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin
-	                       |D3_Pin|D4_Pin|D5_Pin|D6_Pin
-	                       |D7_Pin;
-	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-	  GPIO_InitStruct.Pull = GPIO_NOPULL;
-	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
 	  	 return data;
+}
+
+void WriteData(uint8_t data)
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin
+					                       |D3_Pin|D4_Pin|D5_Pin|D6_Pin
+					                       |D7_Pin;
+					  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+					  GPIO_InitStruct.Pull = GPIO_NOPULL;
+					  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+					  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+				//GPIOB->OTYPER = 0x00; //Set up Data GPIOB in pull-push mode.
+				//Put data on 8 bit section of databus
+				for (int i=0;i<8;i++)
+				{
+					//Write Pin method compared to Init should be fast enough
+							HAL_GPIO_WritePin(GPIOB,1<<i,(data&(1<<i)));
+				}
+
+
+
+				  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin
+				                       |D3_Pin|D4_Pin|D5_Pin|D6_Pin
+				                       |D7_Pin;
+				  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+				  GPIO_InitStruct.Pull = GPIO_NOPULL;
+				  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
 
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	// GPIO_InitTypeDef GPIO_InitStruct = {0};
-	if (GPIO_Pin == INTSIG2_Pin&&HAL_GPIO_ReadPin(INTSIG2_GPIO_Port, INTSIG2_Pin)) //Process RTC
+	if (GPIO_Pin == INTSIG1_Pin&&HAL_GPIO_ReadPin(INTSIG1_GPIO_Port, INTSIG1_Pin)) //Process RTC
+		{
+		uint8_t rtcaddress= ReadRTCAddress();
+		if(HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin))
+		{
+			uint8_t data = RTC_Read(rtcaddress,&hrtc);
+			WriteData(data);
+		}
+		else
+		{
+			uint8_t data = ReadData();
+			RTC_Write(rtcaddress,data ,&hrtc); //Todo fix writes
+		}
+
+	}
+
+
+	if ((GPIO_Pin == INTSIG8_Pin&&HAL_GPIO_ReadPin(INTSIG8_GPIO_Port, INTSIG8_Pin))) //Process  Mouse/Joystick moves
+		{
+		if(HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin))
+			{
+				uint8_t address = 0;
+				address = ReadAddress();
+
+				if (address == 0xA)
+				{
+					WriteData(joy0datH);
+				}
+
+				if (address == 0xB)
+				{
+					WriteData(joy0datL);
+				}
+
+				if (address == 0xC)
+				{
+					WriteData(0x3);
+				}
+
+				if (address == 0xF)
+				{
+					WriteData(0x4);
+				}
+
+
+
+			}
+		}
+
+	if (GPIO_Pin == INTSIG2_Pin&&HAL_GPIO_ReadPin(INTSIG2_GPIO_Port, INTSIG2_Pin)) //Process buttons
 		{
 
 		if(HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin))
 		{
+			uint8_t address = 0;
+			address = ReadAddress();
 
-			uint data = RTC_Read(ReadAddress(),&hrtc);
-			GPIOB->OTYPER = 0x00; //Set up Data GPIOB in pull-push mode.
-			//Put data on 8 bit section of databus
-			for (int i=0;i<8;i++)
+			if (address == 0x16)
 			{
-				//Write Pin method compared to Init should be fast enough
-						HAL_GPIO_WritePin(GPIOB,1<<i,(data&(1<<i)));
+				WriteData(0x55);
+			}
+			else
+			{
+				WriteData(0x00);
 			}
 
-
-			GPIOB->OTYPER = 0xFF; //Set up data GPIOB in open-drain mode.
-			GPIOB->BSRR = 0x0000FFFF; ////Set Data pins to default state
-		}
-		else
-		{
-			RTC_Write(ReadAddress(), ReadData(),&hrtc);
 		}
 
-		}
+
+	}
+
 	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
 
