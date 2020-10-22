@@ -63,8 +63,12 @@ void Error_Handler(void);
 #define INTSIG8_EXTI_IRQn EXTI15_10_IRQn
 #define RW_Pin GPIO_PIN_14
 #define RW_GPIO_Port GPIOC
+#define FIRE1_Pin GPIO_PIN_0
+#define FIRE1_GPIO_Port GPIOC
 #define KBD_DATA_Pin GPIO_PIN_3
 #define KBD_DATA_GPIO_Port GPIOC
+#define FIRE0_Pin GPIO_PIN_3
+#define FIRE0_GPIO_Port GPIOA
 #define A0_Pin GPIO_PIN_4
 #define A0_GPIO_Port GPIOC
 #define D0_Pin GPIO_PIN_0
@@ -84,6 +88,8 @@ void Error_Handler(void);
 #define A1_GPIO_Port GPIOC
 #define A2_Pin GPIO_PIN_7
 #define A2_GPIO_Port GPIOC
+#define INTSIG4_Pin GPIO_PIN_8
+#define INTSIG4_GPIO_Port GPIOC
 #define INTSIG5_Pin GPIO_PIN_9
 #define INTSIG5_GPIO_Port GPIOC
 #define A4_Pin GPIO_PIN_10

@@ -45,14 +45,8 @@
  volatile int8_t joy1datH;
  volatile int8_t joy1datL;
 
- volatile int8_t ciaapraH;
- volatile int8_t ciaapraL;
-
  volatile int8_t POTGORH;
  volatile int8_t POTGORL;
-
-
-
 
 
 /* USER CODE END PD */
@@ -143,6 +137,11 @@ int main(void)
 	 joy1datH=0;
 	 joy1datL=0;
 
+
+	 POTGORH = 0xff;   //0x55; //default not pressed buttons
+	 POTGORL = 0x01;
+
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -175,15 +174,6 @@ int main(void)
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
   keyboard_code_t keycode = {0};
-  HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
-
-
-	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
-
-
-	//set up clock
-
 
 
 
@@ -292,11 +282,46 @@ int main(void)
 
     if(usb->mouse!=NULL)
     {
-    			__disable_irq();
+    			__disable_irq(); //delay interrupt
     			joy0datH = joy0datH + ((usb->mouse->y)/2);
     			joy0datL = joy0datL + ((usb->mouse->x)/2);
+
+    			if(usb->mouse->buttons[1]==1)
+    			{
+    				POTGORH &= ~(1UL << 2);
+    			}
+    			else
+    			{
+    				POTGORH |= 1UL << 2;
+    			}
+
+    			if(usb->mouse->buttons[2]==1)
+    		    {
+    		    	POTGORH &= ~(1UL << 0);
+    		    }
+    		    else
+    		    {
+    		    	POTGORH |= 1UL << 0;
+    		    }
     			__enable_irq();
+
+    			//set up first button.
+    		    if(usb->mouse->buttons[0]==1)
+    		    {
+    		    	HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_RESET);
+    		    }
+    		    else
+    		    {
+    		    	HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_SET);
+    		    }
+
+    		    HAL_GPIO_WritePin(INTSIG4_GPIO_Port, INTSIG4_Pin, GPIO_PIN_SET);
+
     }
+
+
+
+
 						//RIGHT = (*joymap&0x1);
     					//LEFT = (*joymap>>1&0x1);
     					//UP = (*joymap>>3&0x1);
@@ -321,7 +346,37 @@ int main(void)
     	if (*usb->gamepad2>>2&0x1)  joy1datL = 0x01;
     	if (*usb->gamepad2&0x1 && *usb->gamepad2>>2&0x1) joy1datL = 0x02;
 
-        __enable_irq();
+    	if (*usb->gamepad2>>5&0x1)
+    	{
+        	POTGORH &= ~(1UL << 4);
+        }
+        else
+        {
+        	POTGORH |= 1UL << 4;
+        }
+
+
+       	if (*usb->gamepad2>>4&0x1)
+    	{
+        	POTGORH &= ~(1UL << 6);
+        }
+        else
+        {
+        	POTGORH |= 1UL << 6;
+        }
+
+		__enable_irq();
+
+
+
+    	if (*usb->gamepad2>>6&0x1)
+    	{
+    		HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_RESET);
+    	}
+    	else
+    	{
+    		HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_SET);
+    	}
 
     }
 
@@ -469,20 +524,20 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, RW_Pin|KBD_DATA_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, RW_Pin|FIRE1_Pin|KBD_DATA_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, FIRE0_Pin|INTSIG3_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, KBD_CLOCK_Pin|LED2_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(INTSIG3_GPIO_Port, INTSIG3_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, INTSIG4_Pin|INTSIG7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : INTSIG8_Pin */
   GPIO_InitStruct.Pin = INTSIG8_Pin;
@@ -490,19 +545,26 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(INTSIG8_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RW_Pin */
-  GPIO_InitStruct.Pin = RW_Pin;
+  /*Configure GPIO pins : RW_Pin FIRE1_Pin */
+  GPIO_InitStruct.Pin = RW_Pin|FIRE1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(RW_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : KBD_DATA_Pin */
-  GPIO_InitStruct.Pin = KBD_DATA_Pin;
+  /*Configure GPIO pins : KBD_DATA_Pin INTSIG4_Pin */
+  GPIO_InitStruct.Pin = KBD_DATA_Pin|INTSIG4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(KBD_DATA_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : FIRE0_Pin INTSIG3_Pin */
+  GPIO_InitStruct.Pin = FIRE0_Pin|INTSIG3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : A0_Pin A1_Pin A2_Pin INTSIG5_Pin */
   GPIO_InitStruct.Pin = A0_Pin|A1_Pin|A2_Pin|INTSIG5_Pin;
@@ -543,13 +605,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(A4_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : INTSIG3_Pin */
-  GPIO_InitStruct.Pin = INTSIG3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(INTSIG3_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : INTSIG7_Pin */
   GPIO_InitStruct.Pin = INTSIG7_Pin;
@@ -594,15 +649,7 @@ uint8_t ReadAddress()
 
 uint8_t ReadData()
 {
-	//make sure gpio d0-7 for input
-	//  GPIO_InitTypeDef GPIO_InitStruct = {0};
-	//  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin
-	//                       |D3_Pin|D4_Pin|D5_Pin|D6_Pin
-	//                       |D7_Pin;
-	//  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	//  GPIO_InitStruct.Pull = GPIO_NOPULL;
-	//  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
+		//default GPIO state should be INPUT, so no need to set it up.
 		uint8_t data = 0;
 
 		data = HAL_GPIO_ReadPin(GPIOB, D7_Pin);
@@ -629,7 +676,6 @@ void WriteData(uint8_t data)
 					  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
 					  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-				//GPIOB->OTYPER = 0x00; //Set up Data GPIOB in pull-push mode.
 				//Put data on 8 bit section of databus
 				for (int i=0;i<8;i++)
 				{
@@ -701,25 +747,22 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 	if (GPIO_Pin == INTSIG2_Pin&&HAL_GPIO_ReadPin(INTSIG2_GPIO_Port, INTSIG2_Pin)) //Process buttons
 		{
+		uint8_t address = 0;
+		address = ReadAddress();
 
 		if(HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin))
 		{
-			uint8_t address = 0;
-			address = ReadAddress();
-
 			if (address == 0x16)
 			{
-				WriteData(0x55);
+				WriteData(POTGORH);
 			}
-			else
+
+			if (address == 0x17)
 			{
-				WriteData(0x00);
+				WriteData(POTGORL);
 			}
-
 		}
-
-
-	}
+		}
 
 	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
