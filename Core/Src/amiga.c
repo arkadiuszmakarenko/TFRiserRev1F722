@@ -675,12 +675,10 @@ void amikb_startup(void)
 	uint8_t AMIGA_INITPOWER = 0xFD; //11111101
 	uint8_t AMIGA_TERMPOWER = 0xFE; //11111110
 
-	//DBG_N("Enter\r\n");
-
+	amikb_direction(DAT_OUTPUT); // Default
 	// De-assert nRESET for Amiga...
    	amikb_reset();
 
-	amikb_direction(DAT_OUTPUT); // Default
 
 	HAL_Delay(200);           // wait for sync
 	amikb_send((uint8_t) AMIGA_INITPOWER, 0); // send "initiate power-up"
@@ -713,7 +711,7 @@ static void amikb_direction(kbd_dir dir)
 
 		default:
 		case DAT_OUTPUT:
-			GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+			GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
 			GPIO_InitStruct.Pull = GPIO_NOPULL;
 			break;
 	}
@@ -923,10 +921,10 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 	DWT_Delay(10);
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET); // Set KBD_DATA pin
 
-	//DBG_N("DATA AND CLOCK AS INPUTS. WAITING FOR SYNC FROM CPU\r\n");
-	//amikb_direction( DAT_INPUT );
 
-	//mdelay(5);	// handshake wait 500msec
+	amikb_direction( DAT_INPUT );
+
+	// handshake wait 500msec
 	HAL_Delay(5);
 	// The following instructions should be useless as the port has been configured as input few
 	// lines above... :-/

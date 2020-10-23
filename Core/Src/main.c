@@ -45,6 +45,11 @@
  volatile int8_t joy1datH;
  volatile int8_t joy1datL;
 
+ volatile int8_t pot0datH;
+ volatile int8_t pot0datL;
+ volatile int8_t pot1datH;
+ volatile int8_t pot1datL;
+
  volatile int8_t POTGORH;
  volatile int8_t POTGORL;
  uint8_t extraBtn;
@@ -139,7 +144,7 @@ int main(void)
 	 joy1datL=0;
 
 
-	 POTGORH = 0xff;   //0x55; //default not pressed buttons
+	 POTGORH = 0x55;   //0x55; //default not pressed buttons
 	 POTGORL = 0x01;
 
 
@@ -168,8 +173,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   DWT_Init();
 
-  amikb_startup();
-  amikb_ready(0);
+ // amikb_startup();
+  //amikb_ready(0);
 
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
@@ -194,7 +199,7 @@ int main(void)
      usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
 
 
-    if (usb->keyboardusbhost!=NULL)
+    if (usb!=NULL && usb->keyboardusbhost!=NULL)
     {
     	if (KeyboardLedInit==0)
     	{
@@ -208,7 +213,7 @@ int main(void)
     	k_pinfo = usb->keyboard ;
     	int i = 0;
 
-    	if (usb!=NULL && k_pinfo != NULL)
+    	if (k_pinfo != NULL)
     	{
      		keycode.lctrl = k_pinfo->lctrl;
     		keycode.lshift = k_pinfo->lshift;
@@ -349,14 +354,14 @@ int main(void)
     	//usb->gamepad2->gamepad_extraBtn;
 
 
-    	if (usb->gamepad2->gamepad_data>>1&0x1)  joy1datH = 0xFF;
-    	if (usb->gamepad2->gamepad_data>>3&0x1)  joy1datH = 0x01;
-    	if (usb->gamepad2->gamepad_data>>1&0x1 && usb->gamepad2->gamepad_data>>3&0x1)  joy1datH = 0x02;
+    	if (usb->gamepad2->gamepad_data>>1&0x1)  joy1datH =  0x3;
+    	if (usb->gamepad2->gamepad_data>>3&0x1)  joy1datH =  0x1;
+    	if (usb->gamepad2->gamepad_data>>1&0x1 && usb->gamepad2->gamepad_data>>3&0x1)  joy1datH = 0x2;
 
 
-    	if (usb->gamepad2->gamepad_data&0x1)  joy1datL = 0xFF;
-    	if (usb->gamepad2->gamepad_data>>2&0x1)  joy1datL = 0x01;
-    	if (usb->gamepad2->gamepad_data&0x1 && usb->gamepad2->gamepad_data>>2&0x1) joy1datL = 0x02;
+    	if (usb->gamepad2->gamepad_data&0x1)  joy1datL = 0x3;
+    	if (usb->gamepad2->gamepad_data>>2&0x1)  joy1datL = 0x1;
+    	if (usb->gamepad2->gamepad_data&0x1 && usb->gamepad2->gamepad_data>>2&0x1) joy1datL = 0x2;
 
     	if (usb->gamepad2->gamepad_data>>5&0x1)
     	{
@@ -392,14 +397,14 @@ int main(void)
 
     }
 
-
+/*
 
     if(usb->gamepad1!=NULL && usb->mouse==NULL)//make sure we don't collide with mouse.
         {
 
         	__disable_irq();
-        	joy1datH=0;
-        	joy1datL=0;
+        	joy0datH=0;
+        	joy0datL=0;
 
         	//usb->gamepad2->gamepad_extraBtn;
 
@@ -438,18 +443,18 @@ int main(void)
 
         	if (usb->gamepad1->gamepad_data>>6&0x1)
         	{
-        		HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE1_Pin, GPIO_PIN_RESET);
+        		HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_RESET);
         	}
         	else
         	{
-        		HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE1_Pin, GPIO_PIN_SET);
+        		HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_SET);
         	}
 
         }
 
 
 
-
+*/
 
 
 
@@ -612,16 +617,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(INTSIG8_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RW_Pin FIRE1_Pin */
-  GPIO_InitStruct.Pin = RW_Pin|FIRE1_Pin;
+  /*Configure GPIO pins : RW_Pin FIRE1_Pin KBD_DATA_Pin */
+  GPIO_InitStruct.Pin = RW_Pin|FIRE1_Pin|KBD_DATA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : KBD_DATA_Pin INTSIG4_Pin */
-  GPIO_InitStruct.Pin = KBD_DATA_Pin|INTSIG4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -666,6 +664,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : INTSIG4_Pin */
+  GPIO_InitStruct.Pin = INTSIG4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(INTSIG4_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : A4_Pin */
   GPIO_InitStruct.Pin = A4_Pin;
@@ -763,18 +768,22 @@ void WriteData(uint8_t data)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+	uint8_t data = 0;
+	uint8_t address = 0;
+	address = ReadAddress();
+
 	if (GPIO_Pin == INTSIG1_Pin&&HAL_GPIO_ReadPin(INTSIG1_GPIO_Port, INTSIG1_Pin)) //Process RTC
 		{
 		uint8_t rtcaddress= ReadRTCAddress();
 		if(HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin))
 		{
-			uint8_t data = RTC_Read(rtcaddress,&hrtc);
+			data = RTC_Read(rtcaddress,&hrtc);
 			WriteData(data);
 		}
 		else
 		{
-			uint8_t data = ReadData();
-			RTC_Write(rtcaddress,data ,&hrtc); //Todo fix writes
+			data = ReadData();
+			RTC_Write(rtcaddress,data ,&hrtc);
 		}
 
 	}
@@ -784,9 +793,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		{
 		if(HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin))
 			{
-				uint8_t address = 0;
-				address = ReadAddress();
-
 				if (address == 0xA)
 				{
 					WriteData(joy0datH);
@@ -806,29 +812,93 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 				{
 					WriteData(joy1datL);
 				}
-
-
-
 			}
+
 		}
+
 
 	if (GPIO_Pin == INTSIG2_Pin&&HAL_GPIO_ReadPin(INTSIG2_GPIO_Port, INTSIG2_Pin)) //Process buttons
 		{
-		uint8_t address = 0;
-		address = ReadAddress();
 
 		if(HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin))
 		{
-			if (address == 0x16)
+					if (address == 0x12)
+					{
+						WriteData(pot0datH);
+					}
+
+					if (address == 0x13)
+					{
+						WriteData(pot0datL);
+					}
+
+					if (address == 0x14)
+					{
+						WriteData(pot1datL);
+					}
+
+					if (address == 0x15)
+					{
+						WriteData(pot1datL);
+					}
+
+
+
+
+					if (address == 0x16)
+					{
+						WriteData(POTGORH);
+					}
+
+					if (address == 0x17)
+					{
+						WriteData(POTGORL);
+					}
+		}
+		else
+		{
+			if (address == 0x12)
 			{
-				WriteData(POTGORH);
+				data = ReadData();
+				pot0datH = data;
 			}
 
-			if (address == 0x17)
+			if (address == 0x13)
 			{
-				WriteData(POTGORL);
+				data = ReadData();
+				pot0datL=data;
+			}
+			if (address == 0x14)
+			{
+				data = ReadData();
+				pot1datL = data;
+			}
+
+			if (address == 0x15)
+			{
+				data = ReadData();
+				pot1datL = data;
+			}
+
+
+
+
+			if (address == 0x34)
+			{
+			//	data = ReadData();
+			//	POTGORH = data;
+			}
+
+			if (address == 0x35)
+			{
+			//	data = ReadData();
+			//	POTGORL = data;
 			}
 		}
+
+
+
+
 		}
 
 	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
