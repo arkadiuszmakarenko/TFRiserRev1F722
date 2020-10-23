@@ -394,6 +394,61 @@ int main(void)
 
 
 
+    if(usb->gamepad1!=NULL && usb->mouse==NULL)//make sure we don't collide with mouse.
+        {
+
+        	__disable_irq();
+        	joy1datH=0;
+        	joy1datL=0;
+
+        	//usb->gamepad2->gamepad_extraBtn;
+
+
+        	if (usb->gamepad1->gamepad_data>>1&0x1)  joy0datH = 0xFF;
+        	if (usb->gamepad1->gamepad_data>>3&0x1)  joy0datH = 0x01;
+        	if (usb->gamepad1->gamepad_data>>1&0x1 && usb->gamepad1->gamepad_data>>3&0x1)  joy1datH = 0x02;
+
+
+        	if (usb->gamepad1->gamepad_data&0x1)  joy0datL = 0xFF;
+        	if (usb->gamepad1->gamepad_data>>2&0x1)  joy0datL = 0x01;
+        	if (usb->gamepad1->gamepad_data&0x1 && usb->gamepad1->gamepad_data>>2&0x1) joy0datL = 0x02;
+
+        	if (usb->gamepad1->gamepad_data>>5&0x1)
+        	{
+            	POTGORH &= ~(1UL << 0);
+            }
+            else
+            {
+            	POTGORH |= 1UL << 0;
+            }
+
+
+           	if (usb->gamepad1->gamepad_data>>4&0x1)
+        	{
+            	POTGORH &= ~(1UL << 2);
+            }
+            else
+            {
+            	POTGORH |= 1UL << 2;
+            }
+
+    		__enable_irq();
+
+
+
+        	if (usb->gamepad1->gamepad_data>>6&0x1)
+        	{
+        		HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE1_Pin, GPIO_PIN_RESET);
+        	}
+        	else
+        	{
+        		HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE1_Pin, GPIO_PIN_SET);
+        	}
+
+        }
+
+
+
 
 
 

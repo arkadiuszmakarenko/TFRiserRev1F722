@@ -109,7 +109,6 @@ if (HSReady==1)
 		  	  case REPORT_TYPE_MOUSE:
 		  	  {
 		  		usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostHS);
-		  		usbDev.keyboardusbhost = NULL;
 		  	  }
 		  	 break;
 
@@ -216,14 +215,12 @@ if (FSReady==1)
 			case REPORT_TYPE_MOUSE:
 			{
 				usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostFS);
-				usbDev.keyboardusbhost = NULL;
 			}
 			break;
 
 			case REPORT_TYPE_JOYSTICK:
 			{
 				usbDev.gamepad1 = USBH_HID_GetGamepadInfo(&hUsbHostFS);
-				usbDev.keyboardusbhost = NULL;
 			}
 			break;
 
