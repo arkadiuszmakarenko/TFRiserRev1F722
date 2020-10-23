@@ -50,7 +50,12 @@
 /** @defgroup USBH_HID_gamepad_Exported_Types
   * @{
   */
-
+ typedef struct _HID_gamepad_Info
+ {
+   uint8_t gamepad_data;
+   uint8_t gamepad_extraBtn;
+ }
+ HID_gamepad_Info_TypeDef;
 /**
   * @}
   */
@@ -58,6 +63,10 @@
 /** @defgroup USBH_HID_gamepad_Exported_Defines
   * @{
   */
+
+
+
+
 /**
   * @}
   */

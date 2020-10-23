@@ -47,6 +47,7 @@
 
  volatile int8_t POTGORH;
  volatile int8_t POTGORL;
+ uint8_t extraBtn;
 
 
 /* USER CODE END PD */
@@ -321,7 +322,7 @@ int main(void)
 
 
 
-
+    					//gamepad_data
 						//RIGHT = (*joymap&0x1);
     					//LEFT = (*joymap>>1&0x1);
     					//UP = (*joymap>>3&0x1);
@@ -330,6 +331,14 @@ int main(void)
     					//BTN1 =  (*joymap>>6&0x1);
     				    //BTN2 =  (*joymap>>5&0x1);
     					//BTN3 =  (*joymap>>4&0x1);
+    					//BTN4 =  (*joymap>>7&0x1);
+
+    					//gamepad_extraBtn
+    					// Play/Start - 0x20 32
+    					//right front - 0x02 2
+    					//left front - 0x01 1
+
+
     if(usb->gamepad2!=NULL)
     {
 
@@ -337,16 +346,19 @@ int main(void)
     	joy1datH=0;
     	joy1datL=0;
 
-    	if (*usb->gamepad2>>1&0x1)  joy1datH = 0xFF;
-    	if (*usb->gamepad2>>3&0x1)  joy1datH = 0x01;
-    	if (*usb->gamepad2>>1&0x1 && *usb->gamepad2>>3&0x1)  joy1datH = 0x02;
+    	//usb->gamepad2->gamepad_extraBtn;
 
 
-    	if (*usb->gamepad2&0x1)  joy1datL = 0xFF;
-    	if (*usb->gamepad2>>2&0x1)  joy1datL = 0x01;
-    	if (*usb->gamepad2&0x1 && *usb->gamepad2>>2&0x1) joy1datL = 0x02;
+    	if (usb->gamepad2->gamepad_data>>1&0x1)  joy1datH = 0xFF;
+    	if (usb->gamepad2->gamepad_data>>3&0x1)  joy1datH = 0x01;
+    	if (usb->gamepad2->gamepad_data>>1&0x1 && usb->gamepad2->gamepad_data>>3&0x1)  joy1datH = 0x02;
 
-    	if (*usb->gamepad2>>5&0x1)
+
+    	if (usb->gamepad2->gamepad_data&0x1)  joy1datL = 0xFF;
+    	if (usb->gamepad2->gamepad_data>>2&0x1)  joy1datL = 0x01;
+    	if (usb->gamepad2->gamepad_data&0x1 && usb->gamepad2->gamepad_data>>2&0x1) joy1datL = 0x02;
+
+    	if (usb->gamepad2->gamepad_data>>5&0x1)
     	{
         	POTGORH &= ~(1UL << 4);
         }
@@ -356,7 +368,7 @@ int main(void)
         }
 
 
-       	if (*usb->gamepad2>>4&0x1)
+       	if (usb->gamepad2->gamepad_data>>4&0x1)
     	{
         	POTGORH &= ~(1UL << 6);
         }
@@ -369,7 +381,7 @@ int main(void)
 
 
 
-    	if (*usb->gamepad2>>6&0x1)
+    	if (usb->gamepad2->gamepad_data>>6&0x1)
     	{
     		HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_RESET);
     	}

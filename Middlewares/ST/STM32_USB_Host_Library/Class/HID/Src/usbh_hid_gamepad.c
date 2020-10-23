@@ -102,10 +102,10 @@ static USBH_StatusTypeDef USBH_HID_GamepadDecode(USBH_HandleTypeDef *phost);
 /** @defgroup USBH_HID_gamepad_Private_Variables
   * @{
   */
-//HID_gamepad_Info_TypeDef    gamepad_info;
+HID_gamepad_Info_TypeDef    gamepad_info;
 static uint8_t* gamepad_report_data;
 
-static uint8_t gamepad_info;
+//static uint8_t gamepad_info;
 
 
 static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, int is_signed) {
@@ -289,7 +289,8 @@ static USBH_StatusTypeDef USBH_HID_GamepadDecode(USBH_HandleTypeDef *phost)
 				if(a[1] > JOYSTICK_AXIS_TRIGGER_MAX) jmap |= JOY_DOWN;
 				jmap |= btn << JOY_BTN_SHIFT;      // add buttons
 
-				gamepad_info = jmap;
+				gamepad_info.gamepad_data = jmap;
+				gamepad_info.gamepad_extraBtn = btn_extra;
 
 		  return USBH_OK;
 	    }

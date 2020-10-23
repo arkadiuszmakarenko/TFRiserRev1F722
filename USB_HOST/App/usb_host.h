@@ -35,8 +35,8 @@
 /* USER CODE BEGIN INCLUDE */
  typedef struct _HID_USBDev
  {
-   uint8_t *gamepad1;
-   uint8_t *gamepad2;
+   HID_gamepad_Info_TypeDef *gamepad1;
+   HID_gamepad_Info_TypeDef *gamepad2;
    HID_KEYBD_Info_TypeDef *keyboard;
    USBH_HandleTypeDef* keyboardusbhost;
    HID_MOUSE_Info_TypeDef *mouse;
