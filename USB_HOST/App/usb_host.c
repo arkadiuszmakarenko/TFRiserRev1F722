@@ -37,16 +37,7 @@
 
 uint8_t HSReady = 0;
 uint8_t FSReady = 0;
-uint8_t mouse = 0;
 static HID_USBDevicesTypeDef usbDev;
-
-
-
-
-
-
-
-
 
 
 /* USER CODE END PV */
@@ -80,6 +71,7 @@ static void USBH_UserProcess2(USBH_HandleTypeDef *phost, uint8_t id);
 /* USER CODE BEGIN 1 */
 
 //
+
 void mapUSBDevices()
 {
 //process FS USB
@@ -97,6 +89,8 @@ if (HSReady==1)
 		HID_Handle1 = hUsbHostHS.pActiveClass->pData[0];
 		USBH_SelectInterface(&hUsbHostHS, 0);
 
+		usbDev.keyboardusbhost = NULL;
+
 		  switch(HID_Handle1->HID_Desc.RptDesc.type)
 		  {
 		  	  case REPORT_TYPE_KEYBOARD:
@@ -109,13 +103,16 @@ if (HSReady==1)
 		  	  case REPORT_TYPE_MOUSE:
 		  	  {
 		  		usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostHS);
+		  		usbDev.mouseDetected = 1;
+		  		usbDev.overridePorts = 1;
 		  	  }
 		  	 break;
 
 		  	 case REPORT_TYPE_JOYSTICK:
 		      {
 		    	  usbDev.gamepad1 = USBH_HID_GetGamepadInfo(&hUsbHostHS);
-		    	  usbDev.keyboardusbhost = NULL;
+		    	  usbDev.overridePorts = 1;
+
 		  	   }
 		      break;
 
@@ -142,12 +139,15 @@ if (HSReady==1)
 			case REPORT_TYPE_MOUSE:
 			{
 				usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostHS);
+				usbDev.mouseDetected = 1;
+				usbDev.overridePorts = 1;
 			}
 			break;
 
 			case REPORT_TYPE_JOYSTICK:
 			{
 				usbDev.gamepad2 = USBH_HID_GetGamepadInfo(&hUsbHostHS);
+				usbDev.overridePorts = 1;
 			}
 			break;
 
@@ -185,12 +185,15 @@ if (FSReady==1)
 		  	  case REPORT_TYPE_MOUSE:
 		  	  {
 		  		usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostFS);
+		  		usbDev.mouseDetected = 1;
+		  		usbDev.overridePorts = 1;
 		  	  }
 		  	 break;
 
 		  	 case REPORT_TYPE_JOYSTICK:
 		      {
 		    	  usbDev.gamepad2 = USBH_HID_GetGamepadInfo(&hUsbHostFS);
+		    	  usbDev.overridePorts = 1;
 		  	   }
 		      break;
 
@@ -215,12 +218,15 @@ if (FSReady==1)
 			case REPORT_TYPE_MOUSE:
 			{
 				usbDev.mouse= USBH_HID_GetMouseInfo(&hUsbHostFS);
+				usbDev.mouseDetected = 1;
+				usbDev.overridePorts = 1;
 			}
 			break;
 
 			case REPORT_TYPE_JOYSTICK:
 			{
 				usbDev.gamepad1 = USBH_HID_GetGamepadInfo(&hUsbHostFS);
+				usbDev.overridePorts = 1;
 			}
 			break;
 

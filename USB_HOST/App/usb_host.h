@@ -40,6 +40,8 @@
    HID_KEYBD_Info_TypeDef *keyboard;
    USBH_HandleTypeDef* keyboardusbhost;
    HID_MOUSE_Info_TypeDef *mouse;
+   uint8_t mouseDetected;
+   uint8_t overridePorts;
 
  }
  HID_USBDevicesTypeDef;

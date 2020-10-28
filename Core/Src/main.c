@@ -340,10 +340,9 @@ int main(void) {
 
 		}
 
-		//HID_HandleTypeDef *HID_Handle = usb->keyboardusbhost->pActiveClass->pData[1]; // Check if there is mouse on interface 2
-		if (usb->gamepad2 != NULL) //&&  HID_Handle->HID_Desc.RptDesc.type != REPORT_TYPE_MOUSE )//make sure we don't collide with mouse.
-		{
 
+		if (usb->gamepad2 != NULL && usb->mouseDetected!=1) //make sure mouse doesn't colide with controller
+		{
 			__disable_irq();
 			joy0datH = 0;
 			joy0datL = 0;
@@ -379,9 +378,9 @@ int main(void) {
 			__enable_irq();
 
 			if (usb->gamepad2->gamepad_data >> 6 & 0x1) {
-				HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_RESET);
 			} else {
-				HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_SET);
 			}
 
 		}
