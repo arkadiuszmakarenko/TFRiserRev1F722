@@ -249,6 +249,15 @@ int main(void) {
 		//clear usbDevHost
 		usb->keyboardusbhost = NULL;
 
+		//check if override is required
+		if (usb->overridePorts == 1) {
+			HAL_GPIO_WritePin(INTSIG6_GPIO_Port, INTSIG6_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+		} else {
+			HAL_GPIO_WritePin(INTSIG6_GPIO_Port, INTSIG6_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+		}
+
 		if (usb->mouse != NULL) {
 			__disable_irq(); //delay interrupt
 			joy0datH = joy0datH + ((usb->mouse->y) / 2);
@@ -274,7 +283,7 @@ int main(void) {
 				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_SET);
 			}
 
-			HAL_GPIO_WritePin(INTSIG4_GPIO_Port, INTSIG4_Pin, GPIO_PIN_SET);
+
 
 		}
 
@@ -340,9 +349,8 @@ int main(void) {
 
 		}
 
-
-		if (usb->gamepad2 != NULL && usb->mouseDetected!=1) //make sure mouse doesn't colide with controller
-		{
+		if (usb->gamepad2 != NULL && usb->mouseDetected != 1) //make sure mouse doesn't colide with controller
+				{
 			__disable_irq();
 			joy0datH = 0;
 			joy0datL = 0;
@@ -526,7 +534,8 @@ static void MX_GPIO_Init(void) {
 	HAL_GPIO_WritePin(GPIOB, KBD_CLOCK_Pin | LED2_Pin, GPIO_PIN_SET);
 
 	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOC, INTSIG4_Pin | INTSIG7_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOC, INTSIG4_Pin | INTSIG6_Pin | INTSIG7_Pin,
+			GPIO_PIN_RESET);
 
 	/*Configure GPIO pin : INTSIG8_Pin */
 	GPIO_InitStruct.Pin = INTSIG8_Pin;
@@ -582,12 +591,12 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(LED2_GPIO_Port, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : INTSIG4_Pin */
-	GPIO_InitStruct.Pin = INTSIG4_Pin;
+	/*Configure GPIO pins : INTSIG4_Pin INTSIG6_Pin */
+	GPIO_InitStruct.Pin = INTSIG4_Pin | INTSIG6_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(INTSIG4_GPIO_Port, &GPIO_InitStruct);
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
 	/*Configure GPIO pin : A4_Pin */
 	GPIO_InitStruct.Pin = A4_Pin;

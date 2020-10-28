@@ -96,6 +96,8 @@ void Error_Handler(void);
 #define A4_GPIO_Port GPIOA
 #define INTSIG3_Pin GPIO_PIN_15
 #define INTSIG3_GPIO_Port GPIOA
+#define INTSIG6_Pin GPIO_PIN_10
+#define INTSIG6_GPIO_Port GPIOC
 #define INTSIG7_Pin GPIO_PIN_11
 #define INTSIG7_GPIO_Port GPIOC
 #define D3_Pin GPIO_PIN_3
