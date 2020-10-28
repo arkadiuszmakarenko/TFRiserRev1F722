@@ -252,9 +252,11 @@ int main(void) {
 		//check if override is required
 		if (usb->overridePorts == 1) {
 			HAL_GPIO_WritePin(INTSIG6_GPIO_Port, INTSIG6_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(INTSIG4_GPIO_Port, INTSIG4_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
 		} else {
 			HAL_GPIO_WritePin(INTSIG6_GPIO_Port, INTSIG6_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(INTSIG4_GPIO_Port, INTSIG4_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
 		}
 
@@ -622,27 +624,26 @@ static void MX_GPIO_Init(void) {
 
 /* USER CODE BEGIN 4 */
 
-uint8_t ReadRTCAddress() {
+static inline uint8_t ReadRTCAddress() {
 	uint8_t address = 0;
-	address = HAL_GPIO_ReadPin(INTSIG5_GPIO_Port, INTSIG5_Pin);
-	address = (address << 1) | HAL_GPIO_ReadPin(A4_GPIO_Port, A4_Pin);
-	address = (address << 1) | HAL_GPIO_ReadPin(INTSIG3_GPIO_Port, INTSIG3_Pin);
-	address = (address << 1) | HAL_GPIO_ReadPin(A2_GPIO_Port, A2_Pin);
+	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
+	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
+	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U);//PA15 - INTSIG3
+	address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
 	return address;
 }
 
-uint8_t ReadAddress() {
+static inline uint8_t ReadAddress() {
 	uint8_t address = 0;
-	address = HAL_GPIO_ReadPin(INTSIG5_GPIO_Port, INTSIG5_Pin);
-	address = (address << 1) | HAL_GPIO_ReadPin(A4_GPIO_Port, A4_Pin);
-	address = (address << 1) | HAL_GPIO_ReadPin(INTSIG3_GPIO_Port, INTSIG3_Pin);
-	address = (address << 1) | HAL_GPIO_ReadPin(A2_GPIO_Port, A2_Pin);
-	address = (address << 1) | HAL_GPIO_ReadPin(A1_GPIO_Port, A1_Pin);
-	address = (address << 1) | HAL_GPIO_ReadPin(A0_GPIO_Port, A0_Pin);
+	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
+	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
+	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U);//PA15 - INTSIG3
+	address = (address << 2) | ((GPIOC->IDR >> 6) & 3U); //PC6 - A1 & PC7 - A2
+	address = (address << 1) | ((GPIOC->IDR >> 4) & 1U); //PC4 - A0
 	return address;
 }
 
-void WriteData(uint8_t data) {
+static inline void WriteData(uint8_t data) {
 	uint32_t pupdr = GPIOB->PUPDR;
 	GPIOB->PUPDR = pupdr & 0xFFFF0000; // no pull on bits 0 to 7;
 	GPIOB->OTYPER &= ~(0xFF);     //Set up push-pull
@@ -652,6 +653,14 @@ void WriteData(uint8_t data) {
 	GPIOB->OTYPER |= 0xFF; // set to open drain
 	GPIOB->MODER = (GPIOB->MODER & 0xFFFF0000); // set to input
 	GPIOB->PUPDR = pupdr; // restore
+}
+
+static inline uint8_t ReadData() {
+	uint8_t data = 0;
+	data = GPIOB->IDR;
+	//GPIOC->BSRR = GPIO_PIN_11 << 16; // set
+	//GPIOC->BSRR = GPIO_PIN_11; // reset
+	return data;
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
@@ -667,7 +676,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 			WriteData(RTC_Read(rtcaddress, &hrtc));
 		} else {
-			RTC_Write(rtcaddress, GPIOB->IDR, &hrtc);
+			RTC_Write(rtcaddress, ReadData(), &hrtc);
 		}
 
 	}
