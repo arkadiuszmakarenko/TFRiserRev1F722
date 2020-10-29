@@ -52,6 +52,9 @@ static volatile int8_t CIAADRA;
 
 uint8_t tempCIAPRA = 0;
 
+
+volatile int8_t CIAAPRA;
+
 uint8_t extraBtn;
 
 /* USER CODE END PD */
@@ -134,6 +137,27 @@ int main(void) {
 	POTGORH = 0x55;   //0x55; //default not pressed buttons
 	POTGORL = 0x01;
 
+	CIAAPRA = 0xC0;
+
+	/* USER CODE END 1 */
+
+	/* MCU Configuration--------------------------------------------------------*/
+
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
+
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* USER CODE BEGIN SysInit */
+
+	/* USER CODE END SysInit */
+
+	/* Initialize all configured peripherals */
 	CIAAPRA = 0xC0;
 	CIAADRA = 0x00;
 
