@@ -46,6 +46,9 @@ volatile int8_t joy1datL;
 
 volatile int8_t POTGORH;
 volatile int8_t POTGORL;
+
+volatile int8_t CIAAPRA;
+
 uint8_t extraBtn;
 
 /* USER CODE END PD */
@@ -127,6 +130,8 @@ int main(void) {
 
 	POTGORH = 0x55;   //0x55; //default not pressed buttons
 	POTGORL = 0x01;
+
+	CIAAPRA = 0xC0;
 
 	/* USER CODE END 1 */
 
@@ -276,16 +281,17 @@ int main(void) {
 			} else {
 				POTGORH |= 1UL << 0;
 			}
-			__enable_irq();
 
 			//set up first button.
 			if (usb->mouse->buttons[0] == 1) {
-				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_RESET);
+				CIAAPRA ^= (0 ^ CIAAPRA) & (1UL << 6);
+
 			} else {
-				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_SET);
+				CIAAPRA ^= (-1 ^ CIAAPRA) & (1UL << 6);
+
 			}
 
-
+			__enable_irq();
 
 		}
 
@@ -341,13 +347,15 @@ int main(void) {
 				POTGORH |= 1UL << 6;
 			}
 
-			__enable_irq();
-
 			if (usb->gamepad1->gamepad_data >> 6 & 0x1) {
-				HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_RESET);
+				CIAAPRA ^= (0 ^ CIAAPRA) & (1UL << 7);
+
 			} else {
-				HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_SET);
+				CIAAPRA ^= (-1 ^ CIAAPRA) & (1UL << 7);
+
 			}
+
+			__enable_irq();
 
 		}
 
@@ -385,14 +393,13 @@ int main(void) {
 				POTGORH |= 1UL << 2;
 			}
 
-			__enable_irq();
-
 			if (usb->gamepad2->gamepad_data >> 6 & 0x1) {
-				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_RESET);
-			} else {
-				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_SET);
-			}
+				CIAAPRA ^= (0 ^ CIAAPRA) & (1UL << 6);
 
+			} else {
+				CIAAPRA ^= (-1 ^ CIAAPRA) & (1UL << 6);
+			}
+			__enable_irq();
 		}
 
 	}
@@ -628,7 +635,7 @@ static inline uint8_t ReadRTCAddress() {
 	uint8_t address = 0;
 	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
 	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
-	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U);//PA15 - INTSIG3
+	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
 	address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
 	return address;
 }
@@ -637,7 +644,7 @@ static inline uint8_t ReadAddress() {
 	uint8_t address = 0;
 	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
 	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
-	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U);//PA15 - INTSIG3
+	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
 	address = (address << 2) | ((GPIOC->IDR >> 6) & 3U); //PC6 - A1 & PC7 - A2
 	address = (address << 1) | ((GPIOC->IDR >> 4) & 1U); //PC4 - A0
 	return address;
@@ -709,6 +716,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 					{
 
 		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
+			if (address == 0x01) {
+				WriteData(CIAAPRA);
+			}
+
 			if (address == 0x16) {
 				WriteData(POTGORH);
 			}
@@ -717,6 +728,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 				WriteData(POTGORL);
 			}
 		} else {
+			if (address == 0x01) {
+				uint8_t data = 0;
+				data = ReadData();
+				CIAAPRA = data;
+			}
 
 			if (address == 0x34) {
 				//	data = ReadData();
