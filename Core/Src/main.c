@@ -39,13 +39,19 @@
 HID_USBDevicesTypeDef *usb;
 HID_KEYBD_Info_TypeDef *k_pinfo;
 
-volatile int8_t joy0datH;
-volatile int8_t joy0datL;
-volatile int8_t joy1datH;
-volatile int8_t joy1datL;
+static volatile int8_t joy0datH;
+static volatile int8_t joy0datL;
+static volatile int8_t joy1datH;
+static volatile int8_t joy1datL;
 
-volatile int8_t POTGORH;
-volatile int8_t POTGORL;
+static volatile int8_t POTGORH;
+static volatile int8_t POTGORL;
+
+static volatile int8_t CIAAPRA;
+static volatile int8_t CIAADRA;
+
+uint8_t tempCIAPRA = 0;
+
 uint8_t extraBtn;
 
 /* USER CODE END PD */
@@ -127,6 +133,9 @@ int main(void) {
 
 	POTGORH = 0x55;   //0x55; //default not pressed buttons
 	POTGORL = 0x01;
+
+	CIAAPRA = 0xC0;
+	CIAADRA = 0x00;
 
 	/* USER CODE END 1 */
 
@@ -276,16 +285,20 @@ int main(void) {
 			} else {
 				POTGORH |= 1UL << 0;
 			}
-			__enable_irq();
 
 			//set up first button.
+			tempCIAPRA = CIAAPRA;
+
 			if (usb->mouse->buttons[0] == 1) {
-				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_RESET);
+				tempCIAPRA &= ~(1UL << 6);
+				CIAAPRA = tempCIAPRA;
+
 			} else {
-				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_SET);
+				tempCIAPRA |= 1UL << 6;
+				CIAAPRA = tempCIAPRA;
 			}
 
-
+			__enable_irq();
 
 		}
 
@@ -341,13 +354,17 @@ int main(void) {
 				POTGORH |= 1UL << 6;
 			}
 
-			__enable_irq();
-
+			tempCIAPRA = CIAAPRA;
 			if (usb->gamepad1->gamepad_data >> 6 & 0x1) {
-				HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_RESET);
+				tempCIAPRA &= ~(1UL << 6);
+				CIAAPRA = tempCIAPRA;
+
 			} else {
-				HAL_GPIO_WritePin(FIRE1_GPIO_Port, FIRE1_Pin, GPIO_PIN_SET);
+				tempCIAPRA |= 1UL << 6;
+				CIAAPRA = tempCIAPRA;
 			}
+
+			__enable_irq();
 
 		}
 
@@ -384,15 +401,16 @@ int main(void) {
 			} else {
 				POTGORH |= 1UL << 2;
 			}
-
-			__enable_irq();
-
+			tempCIAPRA = CIAAPRA;
 			if (usb->gamepad2->gamepad_data >> 6 & 0x1) {
-				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_RESET);
-			} else {
-				HAL_GPIO_WritePin(FIRE0_GPIO_Port, FIRE0_Pin, GPIO_PIN_SET);
-			}
+				tempCIAPRA &= ~(1UL << 6);
+				CIAAPRA = tempCIAPRA;
 
+			} else {
+				tempCIAPRA |= 1UL << 6;
+				CIAAPRA = tempCIAPRA;
+			}
+			__enable_irq();
 		}
 
 	}
@@ -628,7 +646,7 @@ static inline uint8_t ReadRTCAddress() {
 	uint8_t address = 0;
 	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
 	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
-	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U);//PA15 - INTSIG3
+	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
 	address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
 	return address;
 }
@@ -637,7 +655,7 @@ static inline uint8_t ReadAddress() {
 	uint8_t address = 0;
 	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
 	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
-	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U);//PA15 - INTSIG3
+	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
 	address = (address << 2) | ((GPIOC->IDR >> 6) & 3U); //PC6 - A1 & PC7 - A2
 	address = (address << 1) | ((GPIOC->IDR >> 4) & 1U); //PC4 - A0
 	return address;
@@ -666,6 +684,7 @@ static inline uint8_t ReadData() {
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	uint8_t address = 0;
 	address = ReadAddress();
+	uint8_t data = 0;
 	//Read data 8 bit GPIOB->IDR
 
 	if (GPIO_Pin == INTSIG1_Pin
@@ -685,6 +704,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			&& HAL_GPIO_ReadPin(INTSIG8_GPIO_Port, INTSIG8_Pin))) //Process  Mouse/Joystick moves
 	{
 		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
+			if (address == 0x01) { //CIAADRA
+				WriteData(CIAADRA);
+			}
+
 			if (address == 0xA) {
 				WriteData(joy0datH);
 			}
@@ -700,6 +723,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			if (address == 0xD || address == 0xF) {
 				WriteData(joy1datL);
 			}
+		} else {
+			if (address == 0x01) { //CIAADRA
+				data = ReadData();
+				CIAADRA = data;
+			}
 		}
 
 	}
@@ -709,6 +737,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 					{
 
 		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
+			if (address == 0x01) {
+				WriteData(CIAAPRA);
+			}
+
 			if (address == 0x16) {
 				WriteData(POTGORH);
 			}
@@ -717,6 +749,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 				WriteData(POTGORL);
 			}
 		} else {
+			if (address == 0x01) {
+				//uint8_t data = 0;
+				//data = ReadData();
+				//CIAAPRA = data;
+			}
 
 			if (address == 0x34) {
 				//	data = ReadData();
