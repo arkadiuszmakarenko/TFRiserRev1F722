@@ -50,10 +50,10 @@ static volatile int8_t POTGORL;
 static volatile int8_t CIAAPRA;
 static volatile int8_t CIAADRA;
 
+gamepad_buttons_t gamepad1_buttons;
+gamepad_buttons_t gamepad2_buttons;
+
 uint8_t tempCIAPRA = 0;
-
-
-volatile int8_t CIAAPRA;
 
 uint8_t extraBtn;
 
@@ -129,6 +129,7 @@ int main(void) {
 	uint8_t KeyboardLedInit = 0;
 	static keyboard_led_t keyboard_led = 0;
 
+	//JOYxDAT registers
 	joy0datH = 0;
 	joy0datL = 0;
 	joy1datH = 0;
@@ -138,6 +139,11 @@ int main(void) {
 	POTGORL = 0x01;
 
 	CIAAPRA = 0xC0;
+	CIAADRA = 0x00;
+
+	gamepad1_buttons.buttons_data = 0x00FF;
+	gamepad2_buttons.buttons_data = 0x00FF;
+
 
 	/* USER CODE END 1 */
 
@@ -380,14 +386,47 @@ int main(void) {
 
 			tempCIAPRA = CIAAPRA;
 			if (usb->gamepad1->gamepad_data >> 6 & 0x1) {
-				tempCIAPRA &= ~(1UL << 6);
+				tempCIAPRA &= ~(1UL << 7);
 				CIAAPRA = tempCIAPRA;
 
 			} else {
-				tempCIAPRA |= 1UL << 6;
+				tempCIAPRA |= 1UL << 7;
 				CIAAPRA = tempCIAPRA;
 			}
 
+			//BTN1 =  (*joymap>>6&0x1);
+			//BTN2 =  (*joymap>>5&0x1);
+			//BTN3 =  (*joymap>>4&0x1);
+			//BTN4 =  (*joymap>>7&0x1);
+
+			//gamepad_extraBtn
+			// Play/Start - 0x20 32
+			//right front - 0x02 2
+			//left front - 0x01 1
+			//address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
+
+			gamepad1_buttons.buttons_data = 6; // Gamepad id
+
+			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
+								| !(usb->gamepad1->gamepad_extraBtn >> 5 & 0x1);
+
+			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
+					| !(usb->gamepad1->gamepad_extraBtn & 0x1);
+			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
+					| !(usb->gamepad1->gamepad_extraBtn >> 1 & 0x1);
+
+
+			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
+					| !(usb->gamepad1->gamepad_data >> 7 & 0x1);
+
+			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
+					| !(usb->gamepad1->gamepad_data >> 4 & 0x1);
+
+
+			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
+					| !(usb->gamepad1->gamepad_data >> 6 & 0x1);
+			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
+					| !(usb->gamepad1->gamepad_data >> 5 & 0x1);
 			__enable_irq();
 
 		}
@@ -404,7 +443,7 @@ int main(void) {
 				joy0datH = 0x01;
 			if (usb->gamepad2->gamepad_data >> 1 & 0x1
 					&& usb->gamepad2->gamepad_data >> 3 & 0x1)
-				joy1datH = 0x02;
+				joy0datH = 0x02;
 
 			if (usb->gamepad2->gamepad_data & 0x1)
 				joy0datL = 0xFF;
@@ -434,6 +473,32 @@ int main(void) {
 				tempCIAPRA |= 1UL << 6;
 				CIAAPRA = tempCIAPRA;
 			}
+			gamepad2_buttons.buttons_data = 6; // Gamepad id
+
+			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
+								| !(usb->gamepad2->gamepad_extraBtn >> 5 & 0x1);
+
+			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
+					| !(usb->gamepad2->gamepad_extraBtn & 0x1);
+			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
+					| !(usb->gamepad2->gamepad_extraBtn >> 1 & 0x1);
+
+
+			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
+					| !(usb->gamepad2->gamepad_data >> 7 & 0x1);
+
+			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
+					| !(usb->gamepad2->gamepad_data >> 4 & 0x1);
+
+
+			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
+					| !(usb->gamepad2->gamepad_data >> 6 & 0x1);
+			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
+					| !(usb->gamepad2->gamepad_data >> 5 & 0x1);
+
+
+
+
 			__enable_irq();
 		}
 
@@ -680,7 +745,8 @@ static inline uint8_t ReadAddress() {
 	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
 	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
 	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
-	address = (address << 2) | ((GPIOC->IDR >> 6) & 3U); //PC6 - A1 & PC7 - A2
+	address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
+	address = (address << 1) | ((GPIOC->IDR >> 6) & 1U); //PC6 - A1
 	address = (address << 1) | ((GPIOC->IDR >> 4) & 1U); //PC4 - A0
 	return address;
 }
@@ -698,37 +764,28 @@ static inline void WriteData(uint8_t data) {
 }
 
 static inline uint8_t ReadData() {
-	uint8_t data = 0;
-	data = GPIOB->IDR;
-	//GPIOC->BSRR = GPIO_PIN_11 << 16; // set
-	//GPIOC->BSRR = GPIO_PIN_11; // reset
-	return data;
+	return GPIOB->IDR;
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	uint8_t address = 0;
-	address = ReadAddress();
-	uint8_t data = 0;
-	//Read data 8 bit GPIOB->IDR
+	uint8_t address = ReadAddress();
 
 	if (GPIO_Pin == INTSIG1_Pin
 			&& HAL_GPIO_ReadPin(INTSIG1_GPIO_Port, INTSIG1_Pin)) //Process RTC
 					{
 		uint8_t rtcaddress = ReadRTCAddress();
 		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
-
 			WriteData(RTC_Read(rtcaddress, &hrtc));
 		} else {
 			RTC_Write(rtcaddress, ReadData(), &hrtc);
 		}
-
 	}
 
 	if ((GPIO_Pin == INTSIG8_Pin
 			&& HAL_GPIO_ReadPin(INTSIG8_GPIO_Port, INTSIG8_Pin))) //Process  Mouse/Joystick moves
 	{
 		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
-			if (address == 0x01) { //CIAADRA
+			if (address == 0x01) { //CIAADRA BFE201
 				WriteData(CIAADRA);
 			}
 
@@ -748,9 +805,23 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 				WriteData(joy1datL);
 			}
 		} else {
-			if (address == 0x01) { //CIAADRA
-				data = ReadData();
-				CIAADRA = data;
+			if (address == 0x01) { //CIAADRA BFE201
+				CIAADRA = ReadData();  //tutaj bedzie zmiana
+				if (((CIAADRA >> 7) & 1U) == 1) {
+					gamepad1_buttons.enable = 1;
+					gamepad1_buttons.index = 0;
+
+				} else {
+					gamepad1_buttons.enable = 0;
+				}
+
+				if (((CIAADRA >> 6) & 1U) == 1) {
+					gamepad2_buttons.enable = 1;
+					gamepad2_buttons.index = 0;
+
+				} else {
+					gamepad2_buttons.enable = 0;
+				}
 			}
 		}
 
@@ -762,10 +833,22 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
 			if (address == 0x01) {
-				WriteData(CIAAPRA);
+				WriteData(CIAAPRA); //BFE001
 			}
 
-			if (address == 0x16) {
+			if (address == 0x16) { // tutaj dac bity z przycikow
+				if (gamepad1_buttons.enable == 1) {
+					uint8_t buttonsBit = (gamepad1_buttons.buttons_data
+							>> gamepad1_buttons.index) & 1U;
+					POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 6);
+				}
+
+				if (gamepad2_buttons.enable == 1) {
+					uint8_t buttonsBit = (gamepad2_buttons.buttons_data
+							>> gamepad2_buttons.index) & 1U;
+					POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 2);
+				}
+
 				WriteData(POTGORH);
 			}
 
@@ -774,27 +857,36 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			}
 		} else {
 			if (address == 0x01) {
-				//uint8_t data = 0;
-				//data = ReadData();
-				//CIAAPRA = data;
+				CIAAPRA = ReadData(); // BFE001
+
+				if (gamepad1_buttons.enable == 1
+						&& ((CIAAPRA >> 7) & 1U) == 0) {
+					gamepad1_buttons.index++;
+				}
+
+				if (gamepad2_buttons.enable == 1
+						&& ((CIAAPRA >> 6) & 1U) == 0) {
+					gamepad2_buttons.index++;
+				}
 			}
 
 			if (address == 0x34) {
-				//	data = ReadData();
-				//	POTGORH = data;
+				//POTGORH = ReadData();
+
 			}
 
 			if (address == 0x35) {
-				//	data = ReadData();
-				//	POTGORL = data;
+				//POTGORL = ReadData();
 			}
 		}
 
 	}
 
 	// do this inline to avoid function call overhead
-	GPIOC->BSRR = GPIO_PIN_11 << 16; // set //HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
-	GPIOC->BSRR = GPIO_PIN_11; // reset //HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
+	//GPIOC->BSRR = GPIO_PIN_11 << 16; // set //
+	//GPIOC->BSRR = GPIO_PIN_11; // reset //
+	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
 }
 
 /* USER CODE END 4 */

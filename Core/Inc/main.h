@@ -115,6 +115,11 @@ void Error_Handler(void);
 #define INTSIG1_EXTI_IRQn EXTI9_5_IRQn
 /* USER CODE BEGIN Private defines */
 
+typedef struct {
+	uint8_t enable;
+	uint8_t index;
+	uint16_t buttons_data;
+} gamepad_buttons_t;
 
 
 /* USER CODE END Private defines */
