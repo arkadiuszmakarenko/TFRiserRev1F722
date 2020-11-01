@@ -164,8 +164,7 @@ int main(void) {
 	/* USER CODE END SysInit */
 
 	/* Initialize all configured peripherals */
-	CIAAPRA = 0xC0;
-	CIAADRA = 0x00;
+
 
 	/* USER CODE END 1 */
 
@@ -823,6 +822,26 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 					gamepad2_buttons.enable = 0;
 				}
 			}
+
+			if (address == 0xA) {
+					joy0datH = ReadData();
+				}
+
+				if (address == 0xB) {
+					joy0datL= ReadData();
+				}
+
+				if (address == 0xC) {
+					joy1datH= ReadData();
+				}
+
+				if (address == 0xD || address == 0xF) {
+					joy1datL = ReadData();
+				}
+
+
+
+
 		}
 
 	}
@@ -832,11 +851,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 					{
 
 		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
-			if (address == 0x01) {
+			if (address == 0x01 ||address == 0x03F) {
 				WriteData(CIAAPRA); //BFE001
 			}
 
-			if (address == 0x16) { // tutaj dac bity z przycikow
+			if (address == 0x16) {
+
+				// in case of cd32 button support provide serialised button data.
 				if (gamepad1_buttons.enable == 1) {
 					uint8_t buttonsBit = (gamepad1_buttons.buttons_data
 							>> gamepad1_buttons.index) & 1U;
@@ -856,16 +877,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 				WriteData(POTGORL);
 			}
 		} else {
-			if (address == 0x01) {
+			if (address == 0x01 ||address == 0x03F) {
 				CIAAPRA = ReadData(); // BFE001
 
+				//CD32 button support, it is moment when cd32 clock serial buttons to provide next button value.
 				if (gamepad1_buttons.enable == 1
-						&& ((CIAAPRA >> 7) & 1U) == 0) {
+						&& ((CIAAPRA >> 7) & 1U) == 1) {
 					gamepad1_buttons.index++;
 				}
 
 				if (gamepad2_buttons.enable == 1
-						&& ((CIAAPRA >> 6) & 1U) == 0) {
+						&& ((CIAAPRA >> 6) & 1U) == 1) {
 					gamepad2_buttons.index++;
 				}
 			}
