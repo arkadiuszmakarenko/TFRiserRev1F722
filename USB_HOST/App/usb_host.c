@@ -23,7 +23,9 @@
 
 #include "usb_host.h"
 #include "usbh_core.h"
+#include "usbh_msc.h"
 #include "usbh_hid.h"
+
 
 /* USER CODE BEGIN Includes */
 
@@ -77,7 +79,7 @@ void mapUSBDevices()
 //process FS USB
 	// check if Device is Ready
 	// if it is ready
-if (HSReady==1)
+if (HSReady==1 && hUsbHostHS.pActiveClass->ClassCode == 3)
 {
 	HID_HandleTypeDef *HID_Handle1;
 	HID_HandleTypeDef *HID_Handle2;
@@ -162,7 +164,7 @@ if (HSReady==1)
 
 
 
-if (FSReady==1)
+if (FSReady==1 && hUsbHostFS.pActiveClass->ClassCode == 3)
 {
 	HID_HandleTypeDef *HID_Handle1;
 	HID_HandleTypeDef *HID_Handle2;
@@ -240,6 +242,7 @@ if (FSReady==1)
 
 HID_USBDevicesTypeDef* USBH_HID_GetUSBDev()
 {
+		mapUSBDevices();
 		return &usbDev;
 }
 
@@ -254,16 +257,22 @@ void MX_USB_HOST_Init(void)
   /* USER CODE BEGIN USB_HOST_Init_PreTreatment */
   
   /* USER CODE END USB_HOST_Init_PreTreatment */
-  
+
   /* Init host Library, add supported class and start the library. */
   if (USBH_Init(&hUsbHostHS, USBH_UserProcess1, HOST_HS) != USBH_OK)
   {
     Error_Handler();
   }
-  if (USBH_RegisterClass(&hUsbHostHS, USBH_HID_CLASSHS) != USBH_OK)
+
+  if (USBH_RegisterClass(&hUsbHostHS, USBH_MSC_CLASS) != USBH_OK)
   {
     Error_Handler();
   }
+  if (USBH_RegisterClass(&hUsbHostHS, USBH_HID_CLASS) != USBH_OK)
+  {
+    Error_Handler();
+  }
+
   if (USBH_Start(&hUsbHostHS) != USBH_OK)
   {
     Error_Handler();
@@ -271,9 +280,14 @@ void MX_USB_HOST_Init(void)
   /* USER CODE BEGIN USB_HOST_Init_PreTreatment */
   
   /* USER CODE END USB_HOST_Init_PreTreatment */
-  
+
   /* Init host Library, add supported class and start the library. */
   if (USBH_Init(&hUsbHostFS, USBH_UserProcess2, HOST_FS) != USBH_OK)
+  {
+    Error_Handler();
+  }
+
+  if (USBH_RegisterClass(&hUsbHostFS, USBH_MSC_CLASS) != USBH_OK)
   {
     Error_Handler();
   }
@@ -281,6 +295,7 @@ void MX_USB_HOST_Init(void)
   {
     Error_Handler();
   }
+
   if (USBH_Start(&hUsbHostFS) != USBH_OK)
   {
     Error_Handler();
@@ -298,7 +313,6 @@ void MX_USB_HOST_Process(void)
   /* USB Host Background task */
   USBH_Process(&hUsbHostHS);
   USBH_Process(&hUsbHostFS);
-  mapUSBDevices();
 }
 /*
  * user callback definition

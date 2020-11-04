@@ -30,9 +30,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx.h"
 #include "stm32f7xx_hal.h"
-#include "usbh_hid_mouse.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include "usbh_hid_gamepad.h"
  typedef struct _HID_USBDev
  {
    HID_gamepad_Info_TypeDef *gamepad1;
@@ -85,7 +85,7 @@ typedef enum {
 void MX_USB_HOST_Init(void);
 
 void MX_USB_HOST_Process(void);
-HID_USBDevicesTypeDef* USBH_HID_GetUSBDev();
+
 /**
   * @}
   */

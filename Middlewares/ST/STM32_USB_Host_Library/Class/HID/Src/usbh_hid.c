@@ -393,7 +393,7 @@ USBH_StatusTypeDef static USBH_HID_InterfaceDeInit (USBH_HandleTypeDef *phost)
   if(phost->pActiveClass->pData[i])
   {
     USBH_free (phost->pActiveClass->pData[i]);
-    free(phost->pActiveClass->pData[i]);
+    //free(phost->pActiveClass->pData[i]);
     phost->pActiveClass->pData[i] = 0U;
   }
 }
@@ -807,7 +807,7 @@ HID_TypeTypeDef USBH_HID_GetDeviceType(USBH_HandleTypeDef *phost)
   */
 uint8_t USBH_HID_GetPollInterval(USBH_HandleTypeDef *phost)
 {
-  HID_HandleTypeDef *HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData;
+  HID_HandleTypeDef *HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData[0];
 
   if ((phost->gState == HOST_CLASS_REQUEST) ||
       (phost->gState == HOST_INPUT) ||
