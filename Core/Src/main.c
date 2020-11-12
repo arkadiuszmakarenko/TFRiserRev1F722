@@ -27,6 +27,11 @@
 #include "dwt_delay.h"
 #include "amiga.h"
 #include "rtc_msm6242.h"
+#include "util.h"
+#include "string.h"
+#include "stdint.h"
+#include "stdio.h"
+#include "timer.h"
 
 /* USER CODE END Includes */
 
@@ -69,6 +74,12 @@ uint8_t extraBtn;
 
 RTC_HandleTypeDef hrtc;
 
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim10;
+DMA_HandleTypeDef hdma_tim1_ch1;
+DMA_HandleTypeDef hdma_tim3_ch2;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -76,7 +87,11 @@ RTC_HandleTypeDef hrtc;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_RTC_Init(void);
+static void MX_TIM3_Init(void);
+static void MX_TIM1_Init(void);
+static void MX_TIM10_Init(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
@@ -116,6 +131,27 @@ static void usb_keyboard_led_init(USBH_HandleTypeDef *usbhost) {
 	}
 }
 
+static void fatfs_to_slot(struct slot *slot, FIL *file, const char *name)
+{
+    char *dot;
+    unsigned int i;
+
+    slot->attributes = file->obj.attr;
+    slot->firstCluster = file->obj.sclust;
+    slot->size = file->obj.objsize;
+    slot->dir_sect = file->dir_sect;
+    slot->dir_ptr = (uint32_t)file->dir_ptr;
+   // snprintf(slot->name, sizeof(slot->name), "%s", name);
+    if ((dot = strrchr(slot->name, '.')) != NULL) {
+        //snprintf(slot->type, sizeof(slot->type), "%s", dot+1);
+        for (i = 0; i < sizeof(slot->type); i++)
+            slot->type[i] = tolower(slot->type[i]);
+        *dot = '\0';
+    } else {
+        memset(slot->type, 0, sizeof(slot->type));
+    }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -125,6 +161,7 @@ static void usb_keyboard_led_init(USBH_HandleTypeDef *usbhost) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
 	led_status_t stat;
 
 	uint8_t do_led = 0;
@@ -147,6 +184,7 @@ int main(void)
 	gamepad2_buttons.buttons_data = 0x00FF;
 
 
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -167,9 +205,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USB_HOST_Init();
   MX_RTC_Init();
   MX_FATFS_Init();
+  MX_TIM3_Init();
+  MX_TIM1_Init();
+  MX_TIM10_Init();
   /* USER CODE BEGIN 2 */
 	DWT_Init();
 
@@ -180,6 +222,10 @@ int main(void)
 	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
 	keyboard_code_t keycode = { 0 };
+	struct slot slot1 = {0};
+
+	//HAL_TIM_Base_Start_IT(&htim10);
+	timers_init();
 
   /* USER CODE END 2 */
 
@@ -192,188 +238,158 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-		usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
+		FRESULT fresult;  // result
+		FILINFO USBHfno;
+		//UINT br, bw;  // File read/write count
 
-		if (usb != NULL && usb->keyboardusbhost != NULL) {
-			if (KeyboardLedInit == 0) {
-				usb_keyboard_led_init(usb->keyboardusbhost);
-				//restore LED status on new keyboard.
-				usb_keyboard_led(usb->keyboardusbhost, keyboard_led);
-				KeyboardLedInit++;
-			}
+/*
+		//handle drive
+		if (f_mount(&USBHFatFS, USBHPath, 1) == FR_OK) {
+			fresult = f_stat("AP3.adf", &USBHfno);
 
-			k_pinfo = usb->keyboard;
-			int i = 0;
+			if (fresult == FR_OK) {
+				fresult = f_open(&USBHFile, "AP3.adf", FA_READ);
 
-			if (k_pinfo != NULL) {
-				keycode.lctrl = k_pinfo->lctrl;
-				keycode.lshift = k_pinfo->lshift;
-				keycode.lalt = k_pinfo->lalt;
-				keycode.lgui = k_pinfo->lgui;
-				keycode.rctrl = k_pinfo->rctrl;
-				keycode.rshift = k_pinfo->rshift;
-				keycode.ralt = k_pinfo->ralt;
-				keycode.rgui = k_pinfo->rgui;
-				for (i = 0; i < KEY_PRESSED_MAX; i++) {
-					keycode.keys[i] = k_pinfo->keys[i];
+				if (fresult == FR_OK) {
+
+					fatfs_to_slot(&slot1,&USBHFile , "AP3.adf");
+					br++;
+
+
+					}
+
 				}
-				HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-				stat = amikb_process(&keycode);
 
-				switch (stat) {
-				case LED_CAPS_LOCK_OFF:
-					keyboard_led &= ~CAPS_LOCK_LED;
-					do_led = 1;
-					break;
-				case LED_CAPS_LOCK_ON:
-					keyboard_led |= CAPS_LOCK_LED;
-					do_led = 1;
-					break;
-				case LED_NUM_LOCK_OFF:
-					keyboard_led &= ~NUM_LOCK_LED;
-					do_led = 1;
-					break;
-				case LED_NUM_LOCK_ON:
-					keyboard_led |= NUM_LOCK_LED;
-					do_led = 1;
-					break;
-				case LED_SCROLL_LOCK_OFF:
-					keyboard_led &= ~SCROLL_LOCK_LED;
-					do_led = 1;
-					break;
-				case LED_SCROLL_LOCK_ON:
-					keyboard_led |= SCROLL_LOCK_LED;
-					do_led = 1;
-					break;
-				case LED_RESET_BLINK:
+			}
+*/
+			usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
+
+			if (usb != NULL && usb->keyboardusbhost != NULL) {
+				if (KeyboardLedInit == 0) {
 					usb_keyboard_led_init(usb->keyboardusbhost);
-					do_led = 0;
-					break;
-				default:
-				case NO_LED:
-					do_led = 0;
-					break;
-				}
-				// ...and let the led management to be done!
-				if (do_led) {
+					//restore LED status on new keyboard.
 					usb_keyboard_led(usb->keyboardusbhost, keyboard_led);
+					KeyboardLedInit++;
 				}
 
-			}
-		} else {
-			//Keyboard is deinit.
+				k_pinfo = usb->keyboard;
+				int i = 0;
 
-			KeyboardLedInit = 0;
+				if (k_pinfo != NULL) {
+					keycode.lctrl = k_pinfo->lctrl;
+					keycode.lshift = k_pinfo->lshift;
+					keycode.lalt = k_pinfo->lalt;
+					keycode.lgui = k_pinfo->lgui;
+					keycode.rctrl = k_pinfo->rctrl;
+					keycode.rshift = k_pinfo->rshift;
+					keycode.ralt = k_pinfo->ralt;
+					keycode.rgui = k_pinfo->rgui;
+					for (i = 0; i < KEY_PRESSED_MAX; i++) {
+						keycode.keys[i] = k_pinfo->keys[i];
+					}
+					HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+					stat = amikb_process(&keycode);
 
-		}
-		//clear usbDevHost
-		usb->keyboardusbhost = NULL;
+					switch (stat) {
+					case LED_CAPS_LOCK_OFF:
+						keyboard_led &= ~CAPS_LOCK_LED;
+						do_led = 1;
+						break;
+					case LED_CAPS_LOCK_ON:
+						keyboard_led |= CAPS_LOCK_LED;
+						do_led = 1;
+						break;
+					case LED_NUM_LOCK_OFF:
+						keyboard_led &= ~NUM_LOCK_LED;
+						do_led = 1;
+						break;
+					case LED_NUM_LOCK_ON:
+						keyboard_led |= NUM_LOCK_LED;
+						do_led = 1;
+						break;
+					case LED_SCROLL_LOCK_OFF:
+						keyboard_led &= ~SCROLL_LOCK_LED;
+						do_led = 1;
+						break;
+					case LED_SCROLL_LOCK_ON:
+						keyboard_led |= SCROLL_LOCK_LED;
+						do_led = 1;
+						break;
+					case LED_RESET_BLINK:
+						usb_keyboard_led_init(usb->keyboardusbhost);
+						do_led = 0;
+						break;
+					default:
+					case NO_LED:
+						do_led = 0;
+						break;
+					}
+					// ...and let the led management to be done!
+					if (do_led) {
+						usb_keyboard_led(usb->keyboardusbhost, keyboard_led);
+					}
 
-		//check if override is required
-		if (usb->overridePorts == 1) {
-			HAL_GPIO_WritePin(INTSIG6_GPIO_Port, INTSIG6_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(INTSIG4_GPIO_Port, INTSIG4_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-		} else {
-			HAL_GPIO_WritePin(INTSIG6_GPIO_Port, INTSIG6_Pin, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(INTSIG4_GPIO_Port, INTSIG4_Pin, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-		}
-
-		if (usb->mouse != NULL) {
-			__disable_irq(); //delay interrupt
-			joy0datH = joy0datH + ((usb->mouse->y) / 2);
-			joy0datL = joy0datL + ((usb->mouse->x) / 2);
-
-			if (usb->mouse->buttons[1] == 1) {
-				POTGORH &= ~(1UL << 2);
+				}
 			} else {
-				POTGORH |= 1UL << 2;
-			}
+				//Keyboard is deinit.
 
-			if (usb->mouse->buttons[2] == 1) {
-				POTGORH &= ~(1UL << 0);
+				KeyboardLedInit = 0;
+
+			}
+			//clear usbDevHost
+			usb->keyboardusbhost = NULL;
+
+			//check if override is required
+			if (usb->overridePorts == 1) {
+				HAL_GPIO_WritePin(INTSIG6_GPIO_Port, INTSIG6_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(INTSIG4_GPIO_Port, INTSIG4_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
 			} else {
-				POTGORH |= 1UL << 0;
+				HAL_GPIO_WritePin(INTSIG6_GPIO_Port, INTSIG6_Pin,
+						GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(INTSIG4_GPIO_Port, INTSIG4_Pin,
+						GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
 			}
 
-			//set up first button.
-			tempCIAPRA = CIAAPRA;
+			if (usb->mouse != NULL) {
+				__disable_irq(); //delay interrupt
+				joy0datH = joy0datH + ((usb->mouse->y) / 2);
+				joy0datL = joy0datL + ((usb->mouse->x) / 2);
 
-			if (usb->mouse->buttons[0] == 1) {
-				tempCIAPRA &= ~(1UL << 6);
-				CIAAPRA = tempCIAPRA;
+				if (usb->mouse->buttons[1] == 1) {
+					POTGORH &= ~(1UL << 2);
+				} else {
+					POTGORH |= 1UL << 2;
+				}
 
-			} else {
-				tempCIAPRA |= 1UL << 6;
-				CIAAPRA = tempCIAPRA;
+				if (usb->mouse->buttons[2] == 1) {
+					POTGORH &= ~(1UL << 0);
+				} else {
+					POTGORH |= 1UL << 0;
+				}
+
+				//set up first button.
+				tempCIAPRA = CIAAPRA;
+
+				if (usb->mouse->buttons[0] == 1) {
+					tempCIAPRA &= ~(1UL << 6);
+					CIAAPRA = tempCIAPRA;
+
+				} else {
+					tempCIAPRA |= 1UL << 6;
+					CIAAPRA = tempCIAPRA;
+				}
+
+				__enable_irq();
+
 			}
 
-			__enable_irq();
-
-		}
-
-		//gamepad_data
-		//RIGHT = (*joymap&0x1);
-		//LEFT = (*joymap>>1&0x1);
-		//UP = (*joymap>>3&0x1);
-		//DOWN = (*joymap>>2&0x1);
-
-		//BTN1 =  (*joymap>>6&0x1);
-		//BTN2 =  (*joymap>>5&0x1);
-		//BTN3 =  (*joymap>>4&0x1);
-		//BTN4 =  (*joymap>>7&0x1);
-
-		//gamepad_extraBtn
-		// Play/Start - 0x20 32
-		//right front - 0x02 2
-		//left front - 0x01 1
-
-		if (usb->gamepad1 != NULL) {
-
-			__disable_irq();
-			joy1datH = 0;
-			joy1datL = 0;
-
-			//usb->gamepad1->gamepad_extraBtn;
-
-			if (usb->gamepad1->gamepad_data >> 1 & 0x1)
-				joy1datH = 0x3;
-			if (usb->gamepad1->gamepad_data >> 3 & 0x1)
-				joy1datH = 0x1;
-			if (usb->gamepad1->gamepad_data >> 1 & 0x1
-					&& usb->gamepad1->gamepad_data >> 3 & 0x1)
-				joy1datH = 0x2;
-
-			if (usb->gamepad1->gamepad_data & 0x1)
-				joy1datL = 0x3;
-			if (usb->gamepad1->gamepad_data >> 2 & 0x1)
-				joy1datL = 0x1;
-			if (usb->gamepad1->gamepad_data & 0x1
-					&& usb->gamepad1->gamepad_data >> 2 & 0x1)
-				joy1datL = 0x2;
-
-			if (usb->gamepad1->gamepad_data >> 5 & 0x1) {
-				POTGORH &= ~(1UL << 4);
-			} else {
-				POTGORH |= 1UL << 4;
-			}
-
-			if (usb->gamepad1->gamepad_data >> 4 & 0x1) {
-				POTGORH &= ~(1UL << 6);
-			} else {
-				POTGORH |= 1UL << 6;
-			}
-
-			tempCIAPRA = CIAAPRA;
-			if (usb->gamepad1->gamepad_data >> 6 & 0x1) {
-				tempCIAPRA &= ~(1UL << 7);
-				CIAAPRA = tempCIAPRA;
-
-			} else {
-				tempCIAPRA |= 1UL << 7;
-				CIAAPRA = tempCIAPRA;
-			}
+			//gamepad_data
+			//RIGHT = (*joymap&0x1);
+			//LEFT = (*joymap>>1&0x1);
+			//UP = (*joymap>>3&0x1);
+			//DOWN = (*joymap>>2&0x1);
 
 			//BTN1 =  (*joymap>>6&0x1);
 			//BTN2 =  (*joymap>>5&0x1);
@@ -384,106 +400,155 @@ int main(void)
 			// Play/Start - 0x20 32
 			//right front - 0x02 2
 			//left front - 0x01 1
-			//address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
 
-			gamepad1_buttons.buttons_data = 6; // Gamepad id
+			if (usb->gamepad1 != NULL) {
 
-			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
-								| !(usb->gamepad1->gamepad_extraBtn >> 5 & 0x1);
+				__disable_irq();
+				joy1datH = 0;
+				joy1datL = 0;
 
-			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
-					| !(usb->gamepad1->gamepad_extraBtn & 0x1);
-			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
-					| !(usb->gamepad1->gamepad_extraBtn >> 1 & 0x1);
+				//usb->gamepad1->gamepad_extraBtn;
 
+				if (usb->gamepad1->gamepad_data >> 1 & 0x1)
+					joy1datH = 0x3;
+				if (usb->gamepad1->gamepad_data >> 3 & 0x1)
+					joy1datH = 0x1;
+				if (usb->gamepad1->gamepad_data >> 1 & 0x1
+						&& usb->gamepad1->gamepad_data >> 3 & 0x1)
+					joy1datH = 0x2;
 
-			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
-					| !(usb->gamepad1->gamepad_data >> 7 & 0x1);
+				if (usb->gamepad1->gamepad_data & 0x1)
+					joy1datL = 0x3;
+				if (usb->gamepad1->gamepad_data >> 2 & 0x1)
+					joy1datL = 0x1;
+				if (usb->gamepad1->gamepad_data & 0x1
+						&& usb->gamepad1->gamepad_data >> 2 & 0x1)
+					joy1datL = 0x2;
 
-			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
-					| !(usb->gamepad1->gamepad_data >> 4 & 0x1);
+				if (usb->gamepad1->gamepad_data >> 5 & 0x1) {
+					POTGORH &= ~(1UL << 4);
+				} else {
+					POTGORH |= 1UL << 4;
+				}
 
+				if (usb->gamepad1->gamepad_data >> 4 & 0x1) {
+					POTGORH &= ~(1UL << 6);
+				} else {
+					POTGORH |= 1UL << 6;
+				}
 
-			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
-					| !(usb->gamepad1->gamepad_data >> 6 & 0x1);
-			gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data << 1)
-					| !(usb->gamepad1->gamepad_data >> 5 & 0x1);
-			__enable_irq();
+				tempCIAPRA = CIAAPRA;
+				if (usb->gamepad1->gamepad_data >> 6 & 0x1) {
+					tempCIAPRA &= ~(1UL << 7);
+					CIAAPRA = tempCIAPRA;
+
+				} else {
+					tempCIAPRA |= 1UL << 7;
+					CIAAPRA = tempCIAPRA;
+				}
+
+				//BTN1 =  (*joymap>>6&0x1);
+				//BTN2 =  (*joymap>>5&0x1);
+				//BTN3 =  (*joymap>>4&0x1);
+				//BTN4 =  (*joymap>>7&0x1);
+
+				//gamepad_extraBtn
+				// Play/Start - 0x20 32
+				//right front - 0x02 2
+				//left front - 0x01 1
+				//address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
+
+				gamepad1_buttons.buttons_data = 6; // Gamepad id
+
+				gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data
+						<< 1) | !(usb->gamepad1->gamepad_extraBtn >> 5 & 0x1);
+
+				gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data
+						<< 1) | !(usb->gamepad1->gamepad_extraBtn & 0x1);
+				gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data
+						<< 1) | !(usb->gamepad1->gamepad_extraBtn >> 1 & 0x1);
+
+				gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data
+						<< 1) | !(usb->gamepad1->gamepad_data >> 7 & 0x1);
+
+				gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data
+						<< 1) | !(usb->gamepad1->gamepad_data >> 4 & 0x1);
+
+				gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data
+						<< 1) | !(usb->gamepad1->gamepad_data >> 6 & 0x1);
+				gamepad1_buttons.buttons_data = (gamepad1_buttons.buttons_data
+						<< 1) | !(usb->gamepad1->gamepad_data >> 5 & 0x1);
+				__enable_irq();
+
+			}
+
+			if (usb->gamepad2 != NULL && usb->mouseDetected != 1) //make sure mouse doesn't colide with controller
+					{
+				__disable_irq();
+				joy0datH = 0;
+				joy0datL = 0;
+
+				if (usb->gamepad2->gamepad_data >> 1 & 0x1)
+					joy0datH = 0xFF;
+				if (usb->gamepad2->gamepad_data >> 3 & 0x1)
+					joy0datH = 0x01;
+				if (usb->gamepad2->gamepad_data >> 1 & 0x1
+						&& usb->gamepad2->gamepad_data >> 3 & 0x1)
+					joy0datH = 0x02;
+
+				if (usb->gamepad2->gamepad_data & 0x1)
+					joy0datL = 0xFF;
+				if (usb->gamepad2->gamepad_data >> 2 & 0x1)
+					joy0datL = 0x01;
+				if (usb->gamepad2->gamepad_data & 0x1
+						&& usb->gamepad2->gamepad_data >> 2 & 0x1)
+					joy0datL = 0x02;
+
+				if (usb->gamepad2->gamepad_data >> 5 & 0x1) {
+					POTGORH &= ~(1UL << 0);
+				} else {
+					POTGORH |= 1UL << 0;
+				}
+
+				if (usb->gamepad2->gamepad_data >> 4 & 0x1) {
+					POTGORH &= ~(1UL << 2);
+				} else {
+					POTGORH |= 1UL << 2;
+				}
+				tempCIAPRA = CIAAPRA;
+				if (usb->gamepad2->gamepad_data >> 6 & 0x1) {
+					tempCIAPRA &= ~(1UL << 6);
+					CIAAPRA = tempCIAPRA;
+
+				} else {
+					tempCIAPRA |= 1UL << 6;
+					CIAAPRA = tempCIAPRA;
+				}
+				gamepad2_buttons.buttons_data = 6; // Gamepad id
+
+				gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data
+						<< 1) | !(usb->gamepad2->gamepad_extraBtn >> 5 & 0x1);
+
+				gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data
+						<< 1) | !(usb->gamepad2->gamepad_extraBtn & 0x1);
+				gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data
+						<< 1) | !(usb->gamepad2->gamepad_extraBtn >> 1 & 0x1);
+
+				gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data
+						<< 1) | !(usb->gamepad2->gamepad_data >> 7 & 0x1);
+
+				gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data
+						<< 1) | !(usb->gamepad2->gamepad_data >> 4 & 0x1);
+
+				gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data
+						<< 1) | !(usb->gamepad2->gamepad_data >> 6 & 0x1);
+				gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data
+						<< 1) | !(usb->gamepad2->gamepad_data >> 5 & 0x1);
+
+				__enable_irq();
+			}
 
 		}
-
-		if (usb->gamepad2 != NULL && usb->mouseDetected != 1) //make sure mouse doesn't colide with controller
-				{
-			__disable_irq();
-			joy0datH = 0;
-			joy0datL = 0;
-
-			if (usb->gamepad2->gamepad_data >> 1 & 0x1)
-				joy0datH = 0xFF;
-			if (usb->gamepad2->gamepad_data >> 3 & 0x1)
-				joy0datH = 0x01;
-			if (usb->gamepad2->gamepad_data >> 1 & 0x1
-					&& usb->gamepad2->gamepad_data >> 3 & 0x1)
-				joy0datH = 0x02;
-
-			if (usb->gamepad2->gamepad_data & 0x1)
-				joy0datL = 0xFF;
-			if (usb->gamepad2->gamepad_data >> 2 & 0x1)
-				joy0datL = 0x01;
-			if (usb->gamepad2->gamepad_data & 0x1
-					&& usb->gamepad2->gamepad_data >> 2 & 0x1)
-				joy0datL = 0x02;
-
-			if (usb->gamepad2->gamepad_data >> 5 & 0x1) {
-				POTGORH &= ~(1UL << 0);
-			} else {
-				POTGORH |= 1UL << 0;
-			}
-
-			if (usb->gamepad2->gamepad_data >> 4 & 0x1) {
-				POTGORH &= ~(1UL << 2);
-			} else {
-				POTGORH |= 1UL << 2;
-			}
-			tempCIAPRA = CIAAPRA;
-			if (usb->gamepad2->gamepad_data >> 6 & 0x1) {
-				tempCIAPRA &= ~(1UL << 6);
-				CIAAPRA = tempCIAPRA;
-
-			} else {
-				tempCIAPRA |= 1UL << 6;
-				CIAAPRA = tempCIAPRA;
-			}
-			gamepad2_buttons.buttons_data = 6; // Gamepad id
-
-			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
-								| !(usb->gamepad2->gamepad_extraBtn >> 5 & 0x1);
-
-			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
-					| !(usb->gamepad2->gamepad_extraBtn & 0x1);
-			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
-					| !(usb->gamepad2->gamepad_extraBtn >> 1 & 0x1);
-
-
-			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
-					| !(usb->gamepad2->gamepad_data >> 7 & 0x1);
-
-			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
-					| !(usb->gamepad2->gamepad_data >> 4 & 0x1);
-
-
-			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
-					| !(usb->gamepad2->gamepad_data >> 6 & 0x1);
-			gamepad2_buttons.buttons_data = (gamepad2_buttons.buttons_data << 1)
-					| !(usb->gamepad2->gamepad_data >> 5 & 0x1);
-
-
-
-
-			__enable_irq();
-		}
-
-	}
   /* USER CODE END 3 */
 }
 
@@ -608,6 +673,176 @@ static void MX_RTC_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 65535;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.BreakFilter = 0;
+  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+  sBreakDeadTimeConfig.Break2Filter = 0;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+  HAL_TIM_MspPostInit(&htim1);
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 0;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 65535;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief TIM10 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM10_Init(void)
+{
+
+  /* USER CODE BEGIN TIM10_Init 0 */
+
+  /* USER CODE END TIM10_Init 0 */
+
+  /* USER CODE BEGIN TIM10_Init 1 */
+
+  /* USER CODE END TIM10_Init 1 */
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 8000-1;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 10000-1;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM10_Init 2 */
+
+  /* USER CODE END TIM10_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 8, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 8, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -712,193 +947,206 @@ static void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 8, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
 /* USER CODE BEGIN 4 */
+// TIMER IRQ
+uint8_t timerTime = 0;
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
-static inline uint8_t ReadRTCAddress() {
-	uint8_t address = 0;
-	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
-	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
-	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
-	address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
-	return address;
-}
+	if (htim==&htim10)
+	{
 
-static inline uint8_t ReadAddress() {
-	uint8_t address = 0;
-	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
-	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
-	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
-	address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
-	address = (address << 1) | ((GPIOC->IDR >> 6) & 1U); //PC6 - A1
-	address = (address << 1) | ((GPIOC->IDR >> 4) & 1U); //PC4 - A0
-	return address;
-}
+		irq_call();
 
-static inline void WriteData(uint8_t data) {
-	uint32_t pupdr = GPIOB->PUPDR;
-	GPIOB->PUPDR = pupdr & 0xFFFF0000; // no pull on bits 0 to 7;
-	GPIOB->OTYPER &= ~(0xFF);     //Set up push-pull
-	GPIOB->MODER = (GPIOB->MODER & 0xFFFF0000) | 0x5555; // set to output
-	GPIOB->ODR = (GPIOB->ODR & 0xFF00) | data;
-
-	GPIOB->OTYPER |= 0xFF; // set to open drain
-	GPIOB->MODER = (GPIOB->MODER & 0xFFFF0000); // set to input
-	GPIOB->PUPDR = pupdr; // restore
-}
-
-static inline uint8_t ReadData() {
-	return GPIOB->IDR;
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	uint8_t address = ReadAddress();
-
-	if (GPIO_Pin == INTSIG1_Pin
-			&& HAL_GPIO_ReadPin(INTSIG1_GPIO_Port, INTSIG1_Pin)) //Process RTC
-					{
-		uint8_t rtcaddress = ReadRTCAddress();
-		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
-			WriteData(RTC_Read(rtcaddress, &hrtc));
-		} else {
-			RTC_Write(rtcaddress, ReadData(), &hrtc);
-		}
 	}
 
-	if ((GPIO_Pin == INTSIG8_Pin
-			&& HAL_GPIO_ReadPin(INTSIG8_GPIO_Port, INTSIG8_Pin))) //Process  Mouse/Joystick moves
-	{
-		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
-			if (address == 0x01) { //CIAADRA BFE201
-				WriteData(CIAADRA);
-			}
+}
 
-			if (address == 0xA) {
-				WriteData(joy0datH);
-			}
 
-			if (address == 0xB) {
-				WriteData(joy0datL);
-			}
 
-			if (address == 0xC) {
-				WriteData(joy1datH);
-			}
+// CPU IRW
 
-			if (address == 0xD || address == 0xF) {
-				WriteData(joy1datL);
-			}
-		} else {
-			if (address == 0x01) { //CIAADRA BFE201
-				CIAADRA = ReadData();  //tutaj bedzie zmiana
-				if (((CIAADRA >> 7) & 1U) == 1) {
-					gamepad1_buttons.enable = 1;
-					gamepad1_buttons.index = 0;
+	static inline uint8_t ReadRTCAddress() {
+		uint8_t address = 0;
+		address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
+		address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
+		address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
+		address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
+		return address;
+	}
 
-				} else {
-					gamepad1_buttons.enable = 0;
+	static inline uint8_t ReadAddress() {
+		uint8_t address = 0;
+		address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
+		address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
+		address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
+		address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
+		address = (address << 1) | ((GPIOC->IDR >> 6) & 1U); //PC6 - A1
+		address = (address << 1) | ((GPIOC->IDR >> 4) & 1U); //PC4 - A0
+		return address;
+	}
+
+	static inline void WriteData(uint8_t data) {
+		uint32_t pupdr = GPIOB->PUPDR;
+		GPIOB->PUPDR = pupdr & 0xFFFF0000; // no pull on bits 0 to 7;
+		GPIOB->OTYPER &= ~(0xFF);     //Set up push-pull
+		GPIOB->MODER = (GPIOB->MODER & 0xFFFF0000) | 0x5555; // set to output
+		GPIOB->ODR = (GPIOB->ODR & 0xFF00) | data;
+
+		GPIOB->OTYPER |= 0xFF; // set to open drain
+		GPIOB->MODER = (GPIOB->MODER & 0xFFFF0000); // set to input
+		GPIOB->PUPDR = pupdr; // restore
+	}
+
+	static inline uint8_t ReadData() {
+		return GPIOB->IDR;
+	}
+
+	void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+		uint8_t address = ReadAddress();
+
+		if (GPIO_Pin == INTSIG1_Pin
+				&& HAL_GPIO_ReadPin(INTSIG1_GPIO_Port, INTSIG1_Pin)) //Process RTC
+						{
+			uint8_t rtcaddress = ReadRTCAddress();
+			if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
+				WriteData(RTC_Read(rtcaddress, &hrtc));
+			} else {
+				RTC_Write(rtcaddress, ReadData(), &hrtc);
+			}
+		}
+
+		if ((GPIO_Pin == INTSIG8_Pin
+				&& HAL_GPIO_ReadPin(INTSIG8_GPIO_Port, INTSIG8_Pin))) //Process  Mouse/Joystick moves
+		{
+			if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
+				if (address == 0x01) { //CIAADRA BFE201
+					WriteData(CIAADRA);
 				}
 
-				if (((CIAADRA >> 6) & 1U) == 1) {
-					gamepad2_buttons.enable = 1;
-					gamepad2_buttons.index = 0;
-
-				} else {
-					gamepad2_buttons.enable = 0;
+				if (address == 0xA) {
+					WriteData(joy0datH);
 				}
-			}
 
-			if (address == 0xA) {
+				if (address == 0xB) {
+					WriteData(joy0datL);
+				}
+
+				if (address == 0xC) {
+					WriteData(joy1datH);
+				}
+
+				if (address == 0xD || address == 0xF) {
+					WriteData(joy1datL);
+				}
+			} else {
+				if (address == 0x01) { //CIAADRA BFE201
+					CIAADRA = ReadData();  //tutaj bedzie zmiana
+					if (((CIAADRA >> 7) & 1U) == 1) {
+						gamepad1_buttons.enable = 1;
+						gamepad1_buttons.index = 0;
+
+					} else {
+						gamepad1_buttons.enable = 0;
+					}
+
+					if (((CIAADRA >> 6) & 1U) == 1) {
+						gamepad2_buttons.enable = 1;
+						gamepad2_buttons.index = 0;
+
+					} else {
+						gamepad2_buttons.enable = 0;
+					}
+				}
+
+				if (address == 0xA) {
 					joy0datH = ReadData();
 				}
 
 				if (address == 0xB) {
-					joy0datL= ReadData();
+					joy0datL = ReadData();
 				}
 
 				if (address == 0xC) {
-					joy1datH= ReadData();
+					joy1datH = ReadData();
 				}
 
 				if (address == 0xD || address == 0xF) {
 					joy1datL = ReadData();
 				}
 
-
-
+			}
 
 		}
 
-	}
+		if (GPIO_Pin == INTSIG2_Pin
+				&& HAL_GPIO_ReadPin(INTSIG2_GPIO_Port, INTSIG2_Pin)) //Process buttons
+						{
 
-	if (GPIO_Pin == INTSIG2_Pin
-			&& HAL_GPIO_ReadPin(INTSIG2_GPIO_Port, INTSIG2_Pin)) //Process buttons
-					{
-
-		if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
-			if (address == 0x01 ||address == 0x03F) {
-				WriteData(CIAAPRA); //BFE001
-			}
-
-			if (address == 0x16) {
-
-				// in case of cd32 button support provide serialised button data.
-				if (gamepad1_buttons.enable == 1) {
-					uint8_t buttonsBit = (gamepad1_buttons.buttons_data
-							>> gamepad1_buttons.index) & 1U;
-					POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 6);
+			if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
+				if (address == 0x01 || address == 0x03F) {
+					WriteData(CIAAPRA); //BFE001
 				}
 
-				if (gamepad2_buttons.enable == 1) {
-					uint8_t buttonsBit = (gamepad2_buttons.buttons_data
-							>> gamepad2_buttons.index) & 1U;
-					POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 2);
+				if (address == 0x16) {
+
+					// in case of cd32 button support provide serialised button data.
+					if (gamepad1_buttons.enable == 1) {
+						uint8_t buttonsBit = (gamepad1_buttons.buttons_data
+								>> gamepad1_buttons.index) & 1U;
+						POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 6);
+					}
+
+					if (gamepad2_buttons.enable == 1) {
+						uint8_t buttonsBit = (gamepad2_buttons.buttons_data
+								>> gamepad2_buttons.index) & 1U;
+						POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 2);
+					}
+
+					WriteData(POTGORH);
 				}
 
-				WriteData(POTGORH);
-			}
+				if (address == 0x17) {
+					WriteData(POTGORL);
+				}
+			} else {
+				if (address == 0x01 || address == 0x03F) {
+					CIAAPRA = ReadData(); // BFE001
 
-			if (address == 0x17) {
-				WriteData(POTGORL);
-			}
-		} else {
-			if (address == 0x01 ||address == 0x03F) {
-				CIAAPRA = ReadData(); // BFE001
+					//CD32 button support, it is moment when cd32 clock serial buttons to provide next button value.
+					if (gamepad1_buttons.enable == 1
+							&& ((CIAAPRA >> 7) & 1U) == 1) {
+						gamepad1_buttons.index++;
+					}
 
-				//CD32 button support, it is moment when cd32 clock serial buttons to provide next button value.
-				if (gamepad1_buttons.enable == 1
-						&& ((CIAAPRA >> 7) & 1U) == 1) {
-					gamepad1_buttons.index++;
+					if (gamepad2_buttons.enable == 1
+							&& ((CIAAPRA >> 6) & 1U) == 1) {
+						gamepad2_buttons.index++;
+					}
 				}
 
-				if (gamepad2_buttons.enable == 1
-						&& ((CIAAPRA >> 6) & 1U) == 1) {
-					gamepad2_buttons.index++;
+				if (address == 0x34) {
+					//POTGORH = ReadData();
+
+				}
+
+				if (address == 0x35) {
+					//POTGORL = ReadData();
 				}
 			}
 
-			if (address == 0x34) {
-				//POTGORH = ReadData();
-
-			}
-
-			if (address == 0x35) {
-				//POTGORL = ReadData();
-			}
 		}
 
+		// do this inline to avoid function call overhead
+		//GPIOC->BSRR = GPIO_PIN_11 << 16; // set //
+		//GPIOC->BSRR = GPIO_PIN_11; // reset //
+		HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
 	}
-
-	// do this inline to avoid function call overhead
-	//GPIOC->BSRR = GPIO_PIN_11 << 16; // set //
-	//GPIOC->BSRR = GPIO_PIN_11; // reset //
-	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
-}
 
 /* USER CODE END 4 */
 
@@ -909,7 +1157,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-	/* User can add his own implementation to report the HAL error return state */
+		/* User can add his own implementation to report the HAL error return state */
 
   /* USER CODE END Error_Handler_Debug */
 }
