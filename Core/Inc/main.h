@@ -58,17 +58,13 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define INTSIG8_Pin GPIO_PIN_13
-#define INTSIG8_GPIO_Port GPIOC
-#define INTSIG8_EXTI_IRQn EXTI15_10_IRQn
-#define RW_Pin GPIO_PIN_14
+#define RW_Pin GPIO_PIN_13
 #define RW_GPIO_Port GPIOC
-#define FIRE1_Pin GPIO_PIN_0
-#define FIRE1_GPIO_Port GPIOC
-#define KBD_DATA_Pin GPIO_PIN_3
-#define KBD_DATA_GPIO_Port GPIOC
-#define FIRE0_Pin GPIO_PIN_3
-#define FIRE0_GPIO_Port GPIOA
+#define INTSIG8_Pin GPIO_PIN_0
+#define INTSIG8_GPIO_Port GPIOA
+#define INTSIG8_EXTI_IRQn EXTI0_IRQn
+#define KBD_DATA_Pin GPIO_PIN_1
+#define KBD_DATA_GPIO_Port GPIOA
 #define A0_Pin GPIO_PIN_4
 #define A0_GPIO_Port GPIOC
 #define D0_Pin GPIO_PIN_0
