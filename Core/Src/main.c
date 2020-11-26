@@ -594,9 +594,17 @@ static void MX_RTC_Init(void)
   hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
   hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
   hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+
+  if ((RCC->BDCR && RCC_BDCR_RTCEN)==0)
   {
-    Error_Handler();
+ 	  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+ 	  {
+ 		  Error_Handler();
+ 	  }
+ }
+  else
+  {
+	  hrtc.State = HAL_RTC_STATE_READY;
   }
   /* USER CODE BEGIN RTC_Init 2 */
 
@@ -770,9 +778,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			}
 
 			//Not used at this moment
-			//if (address == 0x6) {   //DIRECT ACCESS - mouse sensitivity set up.
-			//	WriteData(sensitivityMouse);
-			//}
+			if (address == 0x6) {   //DIRECT ACCESS - mouse sensitivity set up.
+				WriteData(sensitivityMouse);
+			}
 
 			//if (address == 0x7) {   //DIRECT ACCESS - mouse sensitivity set up.
 			//}
@@ -826,7 +834,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 			if (address == 0x6) { //DIRECT ACCESS - mouse sensitivity set up.
 				uint8_t sensVal = ReadData();
-				if (sensVal > 0 && sensVal < 9) {
+				if (sensVal > 0) {
 					sensitivityMouse = sensVal;
 					HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sensitivityMouse);
 				}
