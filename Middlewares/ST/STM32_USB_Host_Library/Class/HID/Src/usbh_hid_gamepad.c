@@ -191,7 +191,7 @@ USBH_StatusTypeDef USBH_HID_GamepadInit(USBH_HandleTypeDef *phost)
   * @param  phost: Host handle
   * @retval gamepad information
   */
-uint8_t *USBH_HID_GetGamepadInfo(USBH_HandleTypeDef *phost)
+HID_gamepad_Info_TypeDef *USBH_HID_GetGamepadInfo(USBH_HandleTypeDef *phost)
 {
 	//refresh value of joymap and return value
 	if(USBH_HID_GamepadDecode(phost)== USBH_OK)

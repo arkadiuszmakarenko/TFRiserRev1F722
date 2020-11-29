@@ -37,7 +37,7 @@
 
 uint8_t HSReady = 0;
 uint8_t FSReady = 0;
-static HID_USBDevicesTypeDef usbDev;
+HID_USBDevicesTypeDef usbDev;
 
 
 /* USER CODE END PV */

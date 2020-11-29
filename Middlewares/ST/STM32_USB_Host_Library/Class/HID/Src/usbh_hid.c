@@ -116,7 +116,10 @@ USBH_ClassTypeDef  HID_Class =
   USBH_HID_ClassRequest,
   USBH_HID_Process,
   USBH_HID_SOFProcess,
-  NULL,
+  0,
+  0,
+  0,
+  {0}
 };
 
 USBH_ClassTypeDef  HID_ClassHS =
@@ -128,7 +131,10 @@ USBH_ClassTypeDef  HID_ClassHS =
   USBH_HID_ClassRequest,
   USBH_HID_Process,
   USBH_HID_SOFProcess,
-  NULL,
+  0,
+  0,
+  0,
+  {0}
 };
 /**
 * @}
@@ -413,7 +419,7 @@ USBH_StatusTypeDef static USBH_HID_InterfaceDeInit (USBH_HandleTypeDef *phost)
   * @retval USBH Status
   */
 
-USBH_StatusTypeDef static USBH_HID_NextInterface(USBH_HandleTypeDef *phost)
+void static USBH_HID_NextInterface(USBH_HandleTypeDef *phost)
 {
 	phost->device.current_interface++;
 
@@ -423,7 +429,7 @@ USBH_StatusTypeDef static USBH_HID_NextInterface(USBH_HandleTypeDef *phost)
 	}
 }
 
-USBH_StatusTypeDef static USBH_HID_DefaultInterface(USBH_HandleTypeDef *phost)
+void static USBH_HID_DefaultInterface(USBH_HandleTypeDef *phost)
 {
 		phost->device.current_interface = 0;
 }
@@ -493,7 +499,6 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
 {
 	  USBH_StatusTypeDef status = USBH_OK;
 	  HID_HandleTypeDef *HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData[phost->device.current_interface];
-	  uint32_t XferSize;
 
 	  switch (HID_Handle->state)
 	  {

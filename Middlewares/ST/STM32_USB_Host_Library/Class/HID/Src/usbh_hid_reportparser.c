@@ -76,10 +76,9 @@ int parse_report_descriptor(uint8_t *rep, uint16_t rep_size,hid_report_t *conf) 
   int8_t generic_desktop = -1;   // depth at which first gen_desk was found
   uint8_t collection_depth = 0;
 
-  uint8_t i;
 
   //
-  uint8_t report_size, report_count;
+  uint8_t report_size = 0, report_count = 0;
   uint16_t bit_count = 0, usage_count = 0;
   uint16_t logical_minimum=0, logical_maximum=0;
 
@@ -157,7 +156,7 @@ int parse_report_descriptor(uint8_t *rep, uint16_t rep_size,hid_report_t *conf) 
            	    if((conf->type == REPORT_TYPE_JOYSTICK) ||
            	       (conf->type == REPORT_TYPE_MOUSE)) {
            	      // scan for up to four buttons
-           	      char b;
+           	      uint8_t b;
            	      for(b=0;b<12;b++) {
            		if(report_count > b) {
            		  uint16_t this_bit = bit_count+b;
@@ -176,7 +175,7 @@ int parse_report_descriptor(uint8_t *rep, uint16_t rep_size,hid_report_t *conf) 
            	  }
 
            	  // handle found axes
-           	  char c;
+           	  uint8_t c;
            	  for(c=0;c<2;c++) {
            	    if(axis[c] >= 0) {
            	      uint16_t cnt = bit_count + report_size * axis[c];

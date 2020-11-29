@@ -5,8 +5,6 @@ static RTC_MSM6242_TypeDef rtc = { 0 };
 static uint8_t ignoreWeekdayWrite = 0;
 static uint32_t busyflagTimeout = 0;
 
-static int arr[100][3];
-static int i = 0;
 
 void RTC_M6242_Init() {
 
@@ -99,11 +97,6 @@ void RTC_M6242_Process() {
 			break;
 		}
 
-		arr[i][0] = address;
-		arr[i][1] = data;
-		arr[i][2] = 0;
-		i++;
-
 		return data;
 	}
 
@@ -114,10 +107,6 @@ void RTC_M6242_Process() {
 		HAL_RTC_GetTime(hrtc, &time, RTC_FORMAT_BIN);
 		HAL_RTC_GetDate(hrtc, &date, RTC_FORMAT_BIN);
 
-		arr[i][0] = address;
-			arr[i][1] = value;
-			arr[i][2] = 1;
-			i++;
 
 		switch (address) {
 		case 0x0:
