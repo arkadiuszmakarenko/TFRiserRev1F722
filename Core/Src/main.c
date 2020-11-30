@@ -37,31 +37,29 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
- led_status_t stat;
+led_status_t stat;
 
- uint8_t do_led = 0;
- uint8_t KeyboardLedInit = 0;
- keyboard_led_t keyboard_led = 0;
- HID_USBDevicesTypeDef *usb;
- HID_KEYBD_Info_TypeDef *k_pinfo;
+uint8_t do_led = 0;
+uint8_t KeyboardLedInit = 0;
+keyboard_led_t keyboard_led = 0;
+HID_USBDevicesTypeDef *usb;
+HID_KEYBD_Info_TypeDef *k_pinfo;
 
- volatile int8_t POTGORH = 0xFF;
- volatile int8_t POTGORL = 0x01;
+volatile int8_t POTGORH = 0xFF;
+volatile int8_t POTGORL = 0x01;
 
- volatile int8_t CIAAPRA = 0xC0;
- volatile int8_t CIAADRA = 0x03;
+volatile int8_t CIAAPRA = 0xC0;
+volatile int8_t CIAADRA = 0x03;
 
- volatile int8_t joy0datH = 0;
- volatile int8_t joy0datL = 0;
- volatile int8_t joy1datH = 0;
- volatile int8_t joy1datL = 0;
+volatile int8_t joy0datH = 0;
+volatile int8_t joy0datL = 0;
+volatile int8_t joy1datH = 0;
+volatile int8_t joy1datL = 0;
 
- volatile uint8_t sensitivityMouse;
+volatile uint8_t sensitivityMouse;
 
- volatile gamepad_buttons_t gamepad1_buttons;
- volatile gamepad_buttons_t gamepad2_buttons;
-
-
+volatile gamepad_buttons_t gamepad1_buttons;
+volatile gamepad_buttons_t gamepad2_buttons;
 
 /* USER CODE END PD */
 
@@ -558,14 +556,10 @@ static void MX_RTC_Init(void) {
 	hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
 	hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
 	hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-
-	if ((RCC->BDCR && RCC_BDCR_RTCEN) == 0) {
-		if (HAL_RTC_Init(&hrtc) != HAL_OK) {
-			Error_Handler();
-		}
-	} else {
-		hrtc.State = HAL_RTC_STATE_READY;
+	if (HAL_RTC_Init(&hrtc) != HAL_OK) {
+		Error_Handler();
 	}
+
 	/* USER CODE BEGIN RTC_Init 2 */
 
 	/* USER CODE END RTC_Init 2 */
