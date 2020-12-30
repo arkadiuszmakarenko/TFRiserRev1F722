@@ -46,21 +46,21 @@ HID_USBDevicesTypeDef *usb;
 HID_KEYBD_Info_TypeDef *k_pinfo;
 keyboard_code_t keycode = { 0 };
 
-volatile int8_t POTGORH = 0xFF;
-volatile int8_t POTGORL = 0x01;
+static volatile int8_t POTGORH = 0xFF;
+static volatile int8_t POTGORL = 0x01;
 
-volatile int8_t CIAAPRA = 0xC0;
-volatile int8_t CIAADRA = 0x03;
+static volatile int8_t CIAAPRA = 0xC0;
+static volatile int8_t CIAADRA = 0x03;
 
-volatile int8_t joy0datH = 0;
-volatile int8_t joy0datL = 0;
-volatile int8_t joy1datH = 0;
-volatile int8_t joy1datL = 0;
+static volatile int8_t joy0datH = 0;
+static volatile int8_t joy0datL = 0;
+static volatile int8_t joy1datH = 0;
+static volatile int8_t joy1datL = 0;
 
-volatile uint8_t sensitivityMouse;
+static volatile uint8_t sensitivityMouse;
 
-volatile gamepad_buttons_t gamepad1_buttons;
-volatile gamepad_buttons_t gamepad2_buttons;
+static volatile gamepad_buttons_t gamepad1_buttons;
+static volatile gamepad_buttons_t gamepad2_buttons;
 
 /* USER CODE END PD */
 
@@ -101,7 +101,7 @@ static void usb_keyboard_led(USBH_HandleTypeDef *usbhost, keyboard_led_t ld) {
 		for (;;) {
 			status = USBH_HID_SetReport(usbhost, 0x02, 0x00, &led, 1);
 			if (status == USBH_OK)
-				retrygood--;
+			retrygood--;
 			if (retrygood <= 0)
 				break;
 		}
@@ -138,10 +138,10 @@ int main(void)
   /* USER CODE END 1 */
 
   /* Enable I-Cache---------------------------------------------------------*/
-  SCB_EnableICache();
+
 
   /* Enable D-Cache---------------------------------------------------------*/
-  SCB_EnableDCache();
+
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -167,11 +167,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
   DWT_Init();
   RTC_M6242_Init();
+  amikb_startup();
 
 
 	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET);
 
 
 	//restore settings from backup registers
@@ -187,6 +188,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
+
 
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
@@ -722,13 +724,13 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(INTSIG7_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
@@ -762,6 +764,8 @@ static inline void WriteData(uint8_t data) {
 	GPIOB->MODER = (GPIOB->MODER & 0xFFFF0000) | 0x5555; // set to output
 	GPIOB->ODR = (GPIOB->ODR & 0xFF00) | data;
 
+	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin << 16;
+
 	GPIOB->OTYPER |= 0xFF; // set to open drain
 	GPIOB->MODER = (GPIOB->MODER & 0xFFFF0000); // set to input
 	GPIOB->PUPDR = pupdr; // restore
@@ -783,6 +787,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		} else {
 			RTC_Write(rtcaddress, ReadData(), &hrtc);
 		}
+
+		INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin << 16;
 	}
 
 	if ((GPIO_Pin == INTSIG8_Pin
@@ -863,6 +869,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			//	}
 			//}
 		}
+
+		INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin << 16;
 
 	}
 
@@ -946,24 +954,20 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			}
 
 		}
-
+		INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin << 16;
 	}
 
-
-	if ((GPIO_Pin == INTSIG4_Pin
-			&& HAL_GPIO_ReadPin(INTSIG4_GPIO_Port, INTSIG4_Pin))) //Clockport addresses
-	{
-
-		uint8_t x = 0;
-		x++;
-
-	}
 
 	// do this inline to avoid function call overhead
 	//GPIOC->BSRR = GPIO_PIN_11 << 16; // set //
 	//GPIOC->BSRR = GPIO_PIN_11; // reset //
-	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(INTSIG7_GPIO_Port, INTSIG7_Pin, GPIO_PIN_RESET);
+
+	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin << 16;
+
+
+
+	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin ;
+	//DWT_Delay(1);
 }
 
 /* USER CODE END 4 */
