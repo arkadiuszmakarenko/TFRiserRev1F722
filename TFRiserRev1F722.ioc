@@ -22,6 +22,7 @@ Mcu.Name=STM32F722R(C-E)Tx
 Mcu.Package=LQFP64
 Mcu.Pin0=PC13
 Mcu.Pin1=PC14-OSC32_IN
+<<<<<<< HEAD
 Mcu.Pin10=PB0
 Mcu.Pin11=PB1
 Mcu.Pin12=PB2
@@ -61,6 +62,42 @@ Mcu.Pin7=PA4
 Mcu.Pin8=PA5
 Mcu.Pin9=PC4
 Mcu.PinsNb=40
+=======
+Mcu.Pin10=PB12
+Mcu.Pin11=PB13
+Mcu.Pin12=PB14
+Mcu.Pin13=PB15
+Mcu.Pin14=PC6
+Mcu.Pin15=PC7
+Mcu.Pin16=PC9
+Mcu.Pin17=PA10
+Mcu.Pin18=PA11
+Mcu.Pin19=PA12
+Mcu.Pin2=PH0-OSC_IN
+Mcu.Pin20=PA13
+Mcu.Pin21=PA14
+Mcu.Pin22=PA15
+Mcu.Pin23=PC11
+Mcu.Pin24=PB3
+Mcu.Pin25=PB4
+Mcu.Pin26=PB5
+Mcu.Pin27=PB6
+Mcu.Pin28=PB7
+Mcu.Pin29=PB9
+Mcu.Pin3=PH1-OSC_OUT
+Mcu.Pin30=VP_RTC_VS_RTC_Activate
+Mcu.Pin31=VP_RTC_VS_RTC_Calendar
+Mcu.Pin32=VP_SYS_VS_Systick
+Mcu.Pin33=VP_USB_HOST_VS_USB_HOST_HID_HS
+Mcu.Pin34=VP_USB_HOST_VS_USB_HOST_HID_FS
+Mcu.Pin4=PC3
+Mcu.Pin5=PC4
+Mcu.Pin6=PB0
+Mcu.Pin7=PB1
+Mcu.Pin8=PB2
+Mcu.Pin9=PB11
+Mcu.PinsNb=35
+>>>>>>> parent of e515827 (Basic working project.)
 Mcu.ThirdPartyNb=0
 Mcu.UserConstants=
 Mcu.UserName=STM32F722RETx
@@ -110,8 +147,11 @@ PA15.GPIO_ModeDefaultOutputPP=GPIO_MODE_OUTPUT_OD
 PA15.Locked=true
 PA15.PinState=GPIO_PIN_SET
 PA15.Signal=GPIO_Output
+<<<<<<< HEAD
 PA4.Signal=COMP_DAC1_group
 PA5.Signal=COMP_DAC2_group
+=======
+>>>>>>> parent of e515827 (Basic working project.)
 PB0.GPIOParameters=GPIO_Label
 PB0.GPIO_Label=D0
 PB0.Locked=true
@@ -169,10 +209,13 @@ PB9.GPIOParameters=GPIO_Label
 PB9.GPIO_Label=INTSIG1
 PB9.Locked=true
 PB9.Signal=GPXTI9
+<<<<<<< HEAD
 PC10.GPIOParameters=GPIO_Label
 PC10.GPIO_Label=INTSIG6
 PC10.Locked=true
 PC10.Signal=GPIO_Output
+=======
+>>>>>>> parent of e515827 (Basic working project.)
 PC11.GPIOParameters=GPIO_Speed,PinState,GPIO_Label,GPIO_ModeDefaultOutputPP
 PC11.GPIO_Label=INTSIG7
 PC11.GPIO_ModeDefaultOutputPP=GPIO_MODE_OUTPUT_PP
@@ -202,10 +245,13 @@ PC7.GPIOParameters=GPIO_Label
 PC7.GPIO_Label=A2
 PC7.Locked=true
 PC7.Signal=GPIO_Input
+<<<<<<< HEAD
 PC8.GPIOParameters=GPIO_Label
 PC8.GPIO_Label=INTSIG4
 PC8.Locked=true
 PC8.Signal=GPXTI8
+=======
+>>>>>>> parent of e515827 (Basic working project.)
 PC9.GPIOParameters=GPIO_Label
 PC9.GPIO_Label=INTSIG5
 PC9.Locked=true

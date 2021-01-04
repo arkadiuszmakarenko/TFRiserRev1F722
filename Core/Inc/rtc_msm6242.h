@@ -24,6 +24,5 @@ uint8_t RTC_Read(uint8_t address,RTC_HandleTypeDef *hrtc);
 void RTC_Write(uint8_t address,uint8_t value,RTC_HandleTypeDef *hrtc);
 //extern void RTC_Process();
 extern void RTC_Init(RTC_HandleTypeDef *hrtc);
-void RTC_M6242_Process();
 void RTC_M6242_Init();
 

@@ -629,18 +629,15 @@ static unsigned char numlk = 0;
 static unsigned char scrolllk = 0;
 
 
-static void amikb_direction(kbd_dir dir);
 static led_status_t amikb_send(uint8_t code, int press);
 
 static uint8_t scancode_to_amiga(uint8_t lkey)
 {
 	uint8_t i = 0, keyvalue = lkey;
-	//DBG_N("Enter with 0x%02x lkey ScanCode\r\n", lkey);
 
 	for (i = 0; i < KEYCODE_TAB_SIZE; i++)
 	{
-		//DBG_N("SCANCODE: 0x%02x - AMIGA: 0x%02x\r\n",
-			//scancodeamiga[i][0], scancodeamiga[i][1]);
+
 		if (lkey == scancodeamiga[i][0])
 		{
 			keyvalue = scancodeamiga[i][1];
@@ -648,7 +645,6 @@ static uint8_t scancode_to_amiga(uint8_t lkey)
 		}
 	}
 
-	//DBG_V("Exit with: 0x%02x Amiga ScanCode\r\n", keyvalue);
 	return keyvalue;
 }
 
@@ -675,7 +671,6 @@ void amikb_startup(void)
 	uint8_t AMIGA_INITPOWER = 0xFD; //11111101
 	uint8_t AMIGA_TERMPOWER = 0xFE; //11111110
 
-	amikb_direction(DAT_OUTPUT); // Default
 	// De-assert nRESET for Amiga...
    	amikb_reset();
 
@@ -692,52 +687,6 @@ void amikb_ready(int isready)
 	keyboard_is_present = isready;
 }
 
-
-
-static void amikb_direction(kbd_dir dir)
-{
-	GPIO_InitTypeDef GPIO_InitStruct;
-
-	//DBG_N("Enter with: %d\r\n", dir);
-	/*Configure GPIO KBD_DAT, GPIO KBD_CLOCK as inputs and KBD_RESET as output */
-	GPIO_InitStruct.Pin = KBD_CLOCK_Pin;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	switch (dir)
-	{
-		case DAT_INPUT:
-			GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-			GPIO_InitStruct.Pull = GPIO_NOPULL;
-			break;
-
-		default:
-		case DAT_OUTPUT:
-			GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-			GPIO_InitStruct.Pull = GPIO_NOPULL;
-			break;
-	}
-	HAL_GPIO_Init(KBD_CLOCK_GPIO_Port, &GPIO_InitStruct);
-
-
-	GPIO_InitStruct.Pin = KBD_DATA_Pin;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	switch (dir)
-	{
-		case DAT_INPUT:
-			GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-			GPIO_InitStruct.Pull = GPIO_NOPULL;
-			break;
-
-		default:
-		case DAT_OUTPUT:
-			GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-			GPIO_InitStruct.Pull = GPIO_NOPULL;
-			break;
-	}
-	HAL_GPIO_Init(KBD_DATA_GPIO_Port, &GPIO_InitStruct);
-
-
-
-}
 
 static led_status_t amikb_send(uint8_t keycode, int press)
 {
@@ -883,9 +832,6 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 
 	prev_keycode = keycode;
 
-	// Set direction DAT & CLOCK as output to ensure the correct
-	// movement of the edges (CLK and DAT)
-	amikb_direction(DAT_OUTPUT);
 
 	// make sure we don't pulse the lines while grabbing control
 	// by first reinstating the pullups before changing direction
@@ -921,9 +867,6 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 	DWT_Delay(10);
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET); // Set KBD_DATA pin
 
-
-	amikb_direction( DAT_INPUT );
-
 	// handshake wait 500msec
 	HAL_Delay(5);
 	// The following instructions should be useless as the port has been configured as input few
@@ -937,7 +880,6 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 // **************************
 void amikb_reset(void)
 {
-	amikb_direction(DAT_OUTPUT);
 	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_RESET); // Clear KBD_CLOCK pin
 	HAL_Delay(600);
 	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);   // Set KBD_CLOCK pin
@@ -951,7 +893,6 @@ void amikb_reset(void)
 bool amikb_reset_check(void)
 {
 	bool is_low;
-	amikb_direction( DAT_INPUT );
 	is_low = HAL_GPIO_ReadPin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin) == GPIO_PIN_RESET ? true : false;
 	return is_low;
 }

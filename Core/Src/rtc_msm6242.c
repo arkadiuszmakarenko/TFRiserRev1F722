@@ -12,18 +12,6 @@ void RTC_M6242_Init() {
 
 }
 
-void RTC_M6242_Process() {
-
-	if ( busyflagTimeout == 1)
-		{
-		//remove busy flag after 800ms
-		 rtc.ctl_d &= ~(1UL << 1);
-		 busyflagTimeout = 0;
-
-
-		}
-
-	}
 
 	uint8_t RTC_Read(uint8_t address, RTC_HandleTypeDef *hrtc) {
 		uint8_t data = 0;
