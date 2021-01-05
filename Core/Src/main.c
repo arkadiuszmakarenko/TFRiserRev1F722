@@ -63,6 +63,7 @@ static volatile uint8_t sensitivityMouse;
 static volatile gamepad_buttons_t gamepad1_buttons;
 static volatile gamepad_buttons_t gamepad2_buttons;
 
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -71,8 +72,6 @@ static volatile gamepad_buttons_t gamepad2_buttons;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-DAC_HandleTypeDef hdac;
 
 RTC_HandleTypeDef hrtc;
 
@@ -84,7 +83,6 @@ RTC_HandleTypeDef hrtc;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_RTC_Init(void);
-//static void MX_DAC_Init(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
@@ -127,43 +125,44 @@ static void usb_keyboard_led_init(USBH_HandleTypeDef *usbhost) {
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
-int main(void) {
-	/* USER CODE BEGIN 1 */
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
 	gamepad1_buttons.buttons_data = 0x00FF;
 	gamepad2_buttons.buttons_data = 0x00FF;
 
-	/* USER CODE END 1 */
-	/* Enable I-Cache---------------------------------------------------------*/
-	SCB_EnableICache();
+  /* USER CODE END 1 */
 
-	/* Enable D-Cache---------------------------------------------------------*/
-	SCB_EnableDCache();
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* Enable D-Cache---------------------------------------------------------*/
+  SCB_EnableDCache();
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* USER CODE BEGIN Init */
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE END Init */
+  /* USER CODE BEGIN Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* USER CODE END Init */
 
-	/* USER CODE BEGIN SysInit */
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE END SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_USB_HOST_Init();
-	MX_RTC_Init();
+  /* USER CODE END SysInit */
 
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USB_HOST_Init();
+  MX_RTC_Init();
+  /* USER CODE BEGIN 2 */
 	DWT_Init();
 	RTC_M6242_Init();
 	//amikb_startup();
@@ -180,16 +179,16 @@ int main(void) {
 		sensitivityMouse = 2;
 	}
 
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1) {
 
-		/* USER CODE END WHILE */
-		MX_USB_HOST_Process();
+    /* USER CODE END WHILE */
+    MX_USB_HOST_Process();
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 
 		usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
 
@@ -476,232 +475,237 @@ int main(void) {
 		}
 
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
-void SystemClock_Config(void) {
-	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
-	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = { 0 };
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-	/** Configure LSE Drive Capability
-	 */
-	HAL_PWR_EnableBkUpAccess();
-	__HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_HIGH);
-	/** Configure the main internal regulator output voltage
-	 */
-	__HAL_RCC_PWR_CLK_ENABLE();
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE
-			| RCC_OSCILLATORTYPE_LSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLM = 25;
-	RCC_OscInitStruct.PLL.PLLN = 432;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 9;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
-	/** Activate the Over-Drive mode
-	 */
-	if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
-		Error_Handler();
-	}
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  /** Configure LSE Drive Capability
+  */
+  HAL_PWR_EnableBkUpAccess();
+  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_HIGH);
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 25;
+  RCC_OscInitStruct.PLL.PLLN = 432;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 9;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Activate the Over-Drive mode
+  */
+  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK) {
-		Error_Handler();
-	}
-	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC
-			| RCC_PERIPHCLK_CLK48;
-	PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-	PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_CLK48;
+  PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
- * @brief DAC Initialization Function
- * @param None
- * @retval None
- */
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
 
-/**
- * @brief RTC Initialization Function
- * @param None
- * @retval None
- */
-static void MX_RTC_Init(void) {
+  /* USER CODE BEGIN RTC_Init 0 */
 
-	/* USER CODE BEGIN RTC_Init 0 */
+  /* USER CODE END RTC_Init 0 */
 
-	/* USER CODE END RTC_Init 0 */
+  /* USER CODE BEGIN RTC_Init 1 */
 
-	/* USER CODE BEGIN RTC_Init 1 */
+  /* USER CODE END RTC_Init 1 */
+  /** Initialize RTC Only
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = 127;
+  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
 
-	/* USER CODE END RTC_Init 1 */
-	/** Initialize RTC Only
-	 */
-	hrtc.Instance = RTC;
-	hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
-	hrtc.Init.AsynchPrediv = 127;
-	hrtc.Init.SynchPrediv = 255;
-	hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-	hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-	hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-	if (HAL_RTC_Init(&hrtc) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN RTC_Init 2 */
-
-	/* USER CODE END RTC_Init 2 */
+  /* USER CODE END RTC_Init 2 */
 
 }
 
 /**
- * @brief GPIO Initialization Function
- * @param None
- * @retval None
- */
-static void MX_GPIO_Init(void) {
-	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOC_CLK_ENABLE();
-	__HAL_RCC_GPIOH_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOA, KBD_DATA_Pin | INTSIG3_Pin, GPIO_PIN_SET);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, KBD_DATA_Pin|INTSIG3_Pin, GPIO_PIN_SET);
 
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOB, KBD_CLOCK_Pin | LED2_Pin, GPIO_PIN_SET);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, KBD_CLOCK_Pin|LED2_Pin, GPIO_PIN_SET);
 
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOC, INTSIG6_Pin | INTSIG7_Pin, GPIO_PIN_RESET);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, INTSIG6_Pin|INTSIG7_Pin, GPIO_PIN_RESET);
 
-	/*Configure GPIO pins : RW_Pin A0_Pin A1_Pin A2_Pin
-	 INTSIG5_Pin */
-	GPIO_InitStruct.Pin = RW_Pin | A0_Pin | A1_Pin | A2_Pin | INTSIG5_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  /*Configure GPIO pins : RW_Pin A0_Pin A1_Pin A2_Pin
+                           INTSIG5_Pin */
+  GPIO_InitStruct.Pin = RW_Pin|A0_Pin|A1_Pin|A2_Pin
+                          |INTSIG5_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : INTSIG8_Pin */
-	GPIO_InitStruct.Pin = INTSIG8_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(INTSIG8_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : INTSIG8_Pin */
+  GPIO_InitStruct.Pin = INTSIG8_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(INTSIG8_GPIO_Port, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : KBD_DATA_Pin INTSIG3_Pin */
-	GPIO_InitStruct.Pin = KBD_DATA_Pin | INTSIG3_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  /*Configure GPIO pins : KBD_DATA_Pin INTSIG3_Pin */
+  GPIO_InitStruct.Pin = KBD_DATA_Pin|INTSIG3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : D0_Pin D1_Pin D2_Pin D3_Pin
-	 D4_Pin D5_Pin D6_Pin D7_Pin */
-	GPIO_InitStruct.Pin = D0_Pin | D1_Pin | D2_Pin | D3_Pin | D4_Pin | D5_Pin
-			| D6_Pin | D7_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  /*Configure GPIO pins : D0_Pin D1_Pin D2_Pin D3_Pin
+                           D4_Pin D5_Pin D6_Pin D7_Pin */
+  GPIO_InitStruct.Pin = D0_Pin|D1_Pin|D2_Pin|D3_Pin
+                          |D4_Pin|D5_Pin|D6_Pin|D7_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : KBD_CLOCK_Pin */
-	GPIO_InitStruct.Pin = KBD_CLOCK_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-	HAL_GPIO_Init(KBD_CLOCK_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : KBD_CLOCK_Pin */
+  GPIO_InitStruct.Pin = KBD_CLOCK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(KBD_CLOCK_GPIO_Port, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : INTSIG2_Pin INTSIG1_Pin */
-	GPIO_InitStruct.Pin = INTSIG2_Pin | INTSIG1_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  /*Configure GPIO pins : INTSIG2_Pin INTSIG1_Pin */
+  GPIO_InitStruct.Pin = INTSIG2_Pin|INTSIG1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : LED2_Pin */
-	GPIO_InitStruct.Pin = LED2_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(LED2_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : LED2_Pin */
+  GPIO_InitStruct.Pin = LED2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED2_GPIO_Port, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : INTSIG4_Pin */
-	GPIO_InitStruct.Pin = INTSIG4_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(INTSIG4_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : INTSIG4_Pin */
+  GPIO_InitStruct.Pin = INTSIG4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(INTSIG4_GPIO_Port, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : A4_Pin */
-	GPIO_InitStruct.Pin = A4_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(A4_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : A4_Pin */
+  GPIO_InitStruct.Pin = A4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(A4_GPIO_Port, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : INTSIG6_Pin */
-	GPIO_InitStruct.Pin = INTSIG6_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(INTSIG6_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : INTSIG6_Pin */
+  GPIO_InitStruct.Pin = INTSIG6_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(INTSIG6_GPIO_Port, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : INTSIG7_Pin */
-	GPIO_InitStruct.Pin = INTSIG7_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-	HAL_GPIO_Init(INTSIG7_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : INTSIG7_Pin */
+  GPIO_InitStruct.Pin = INTSIG7_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(INTSIG7_GPIO_Port, &GPIO_InitStruct);
 
-	/* EXTI interrupt init*/
-	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
-	HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
-	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
 /* USER CODE BEGIN 4 */
 
 static inline uint8_t ReadRTCAddress() {
-	uint8_t address = 0;
-	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
-	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
-	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
-	address = (address << 1) | ((GPIOC->IDR >> 7) & 1U); //PC7 - A2
+	register uint32_t gpioa_data = GPIOA->IDR;
+	register uint32_t gpioc_data = GPIOC->IDR;
+	register uint8_t address = ((gpioc_data >> 9) & 1U); //PC9 - INTSIG5
+	address = (address << 1) | ((gpioa_data >> 10) & 1U); //PA10 - A4
+	address = (address << 1) | ((gpioa_data >> 15) & 1U); //PA15 - INTSIG3
+	address = (address << 1) | ((gpioc_data >> 7) & 1U); //PC7 - A2
 	return address;
 }
 
 static inline uint8_t ReadAddress() {
-	uint8_t address = 0;
-	address = ((GPIOC->IDR >> 9) & 1U); //PC9 - INTSIG5
-	address = (address << 1) | ((GPIOA->IDR >> 10) & 1U); //PA10 - A4
-	address = (address << 1) | ((GPIOA->IDR >> 15) & 1U); //PA15 - INTSIG3
-	address = (address << 2) | ((GPIOC->IDR >> 6) & 0b11); //PC6 - A1 & PC7 - A2
-	address = (address << 1) | ((GPIOC->IDR >> 4) & 1U); //PC4 - A0
+	register uint32_t gpioa_data = GPIOA->IDR;
+	register uint32_t gpioc_data = GPIOC->IDR;
+
+	register uint8_t address = ((gpioc_data >> 9) & 1U); //PC9 - INTSIG5
+	address = (address << 1) | ((gpioa_data >> 10) & 1U); //PA10 - A4
+	address = (address << 1) | ((gpioa_data >> 15) & 1U); //PA15 - INTSIG3
+	address = (address << 2) | ((gpioc_data >> 6) & 0b11); //PC6 - A1 & PC7 - A2
+	address = (address << 1) | ((gpioc_data >> 4) & 1U); //PC4 - A0
 	return address;
 }
 
@@ -721,7 +725,7 @@ static inline void WriteData(uint8_t data) {
 }
 
 static inline uint8_t ReadData() {
-	uint8_t data = GPIOB->IDR;
+	register uint8_t data = GPIOB->IDR;
 	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin;
 	return data;
 }
@@ -731,36 +735,38 @@ void EXTI0_IRQHandler(void) //INTSIG8 //GPIO_PIN0
 	INTSIG7_GPIO_Port->BSRR = INTSIG7_RELEASE;
 	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_0);
 
-	uint8_t address = ReadAddress();
+	register uint8_t address = ReadAddress();
 
 	if (RW_GPIO_Port->IDR & RW_Pin) {
-		if (address == 0x01) { //CIAADRA BFE201
-			WriteData(CIAADRA);
-		}
+		switch (address) {
+			case 0x01:
+				WriteData(CIAADRA);
+				break;
 
-		//Not used at this moment
-		if (address == 0x6) {   //DIRECT ACCESS - mouse sensitivity set up.
-			WriteData(sensitivityMouse);
-		}
+			case 0x6:
+				//DIRECT ACCESS - mouse sensitivity set up.
+				WriteData(sensitivityMouse);
+				break;
 
-		//if (address == 0x7) {   //DIRECT ACCESS - mouse sensitivity set up.
-		//}
+			case 0xA:
+				WriteData(joy0datH);
+				break;
 
-		if (address == 0xA) {
-			WriteData(joy0datH);
-		}
+			case 0xB:
+				WriteData(joy0datL);
+				break;
 
-		if (address == 0xB) {
-			WriteData(joy0datL);
-		}
+			case 0xC:
+			case 0xE:
+				WriteData(joy1datH);
+				break;
 
-		if (address == 0xC) {
-			WriteData(joy1datH);
-		}
+			case 0xD:
+			case 0xF:
+				WriteData(joy1datL);
+				break;
 
-		if (address == 0xD || address == 0xF) {
-			WriteData(joy1datL);
-		}
+			}
 	} else {
 		if (address == 0x01) { //CIAADRA BFE201
 			CIAADRA = ReadData(); //tutaj bedzie zmiana - here is where CD32 gamepad serialise buttons start.
@@ -803,7 +809,7 @@ void EXTI0_IRQHandler(void) //INTSIG8 //GPIO_PIN0
 	}
 
 
-
+	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin; //in case address is not handled in above list
 }
 
 void EXTI15_10_IRQHandler(void) //GPIO_PIN_12 //INTSIG2
@@ -811,111 +817,118 @@ void EXTI15_10_IRQHandler(void) //GPIO_PIN_12 //INTSIG2
 	INTSIG7_GPIO_Port->BSRR = INTSIG7_RELEASE;
 	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_12);
 
-	uint8_t address = ReadAddress();
+	register uint8_t address = ReadAddress();
 
 	if (RW_GPIO_Port->IDR & RW_Pin) {
-		if (address == 0x01 || address == 0x03F) {
-			WriteData(CIAAPRA); //BFE001
-		}
+		switch (address) {
+			case 0x01:
+			case 0x03F:
+				WriteData(CIAAPRA); //BFE001
+				break;
 
-		if (address == 0x16) {
+			case 0x16:
+				// in case of cd32 button support provide serialised button data.
+				if (gamepad1_buttons.enable == 1) {
+					uint8_t buttonsBit = ((gamepad1_buttons.buttons_data
+							>> gamepad1_buttons.index) & 1U);
+					POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 6);
 
-			// in case of cd32 button support provide serialised button data.
-			if (gamepad1_buttons.enable == 1) {
-				uint8_t buttonsBit = ((gamepad1_buttons.buttons_data
-						>> gamepad1_buttons.index) & 1U);
-				POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 6);
+				}
+
+				if (gamepad2_buttons.enable == 1) {
+					uint8_t buttonsBit = ((gamepad2_buttons.buttons_data
+							>> gamepad2_buttons.index) & 1U);
+					POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 2);
+				}
+
+				WriteData(POTGORH);
+				break;
+
+			case 0x17:
+				WriteData(POTGORL);
+				break;
 
 			}
 
-			if (gamepad2_buttons.enable == 1) {
-				uint8_t buttonsBit = ((gamepad2_buttons.buttons_data
-						>> gamepad2_buttons.index) & 1U);
-				POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 2);
-			}
-
-			WriteData(POTGORH);
-		}
-
-		if (address == 0x17) {
-			WriteData(POTGORL);
-		}
 	} else {
-		if (address == 0x01 || address == 0x03F) {
-			CIAAPRA = ReadData(); // BFE001
+		switch (address) {
+				case 0x01:
+				case 0x03F:
+					CIAAPRA = ReadData(); // BFE001
 
-			//CD32 button support, it is moment when cd32 clock serial buttons to provide next button value.
-			if (gamepad1_buttons.enable == 1 && ((CIAAPRA >> 7) & 1U) == 1) {
-				gamepad1_buttons.index++;
+					//CD32 button support, it is moment when cd32 clock serial buttons to provide next button value.
+					if (gamepad1_buttons.enable == 1 && ((CIAAPRA >> 7) & 1U) == 1) {
+						gamepad1_buttons.index++;
+					}
+
+					if (gamepad2_buttons.enable == 1 && ((CIAAPRA >> 6) & 1U) == 1) {
+						gamepad2_buttons.index++;
+					}
+
+					break;
+
+				case 0x34:
+					;
+					int8_t potgor = ReadData();
+					int8_t OUTLX = (potgor >> 1) & 1U;
+					int8_t OUTLY = (potgor >> 3) & 1U;
+					int8_t OUTRX = (potgor >> 5) & 1U;
+					int8_t OUTRY = (potgor >> 7) & 1U;
+
+					POTGORH ^= (-OUTLX ^ POTGORH) & (1UL << 1);
+					POTGORH ^= (-OUTLY ^ POTGORH) & (1UL << 3);
+					POTGORH ^= (-OUTRX ^ POTGORH) & (1UL << 5);
+					POTGORH ^= (-OUTRY ^ POTGORH) & (1UL << 7);
+
+					break;
+
+				case 0x35:
+					POTGORL = ReadData();
+					break;
+
+				case 0x36:
+					;
+					uint8_t data_readH = ReadData();
+					joy0datH = data_readH;
+					joy1datH = data_readH;
+					break;
+
+				case 0x37:
+					;
+					uint8_t data_readL = ReadData();
+					joy0datL = data_readL;
+					joy1datL = data_readL;
+					break;
+				}
+
 			}
-
-			if (gamepad2_buttons.enable == 1 && ((CIAAPRA >> 6) & 1U) == 1) {
-				gamepad2_buttons.index++;
-			}
-		}
-
-		if (address == 0x34) {
-			int8_t potgor = ReadData();
-			int8_t OUTLX = (potgor >> 1) & 1U;
-			int8_t OUTLY = (potgor >> 3) & 1U;
-			int8_t OUTRX = (potgor >> 5) & 1U;
-			int8_t OUTRY = (potgor >> 7) & 1U;
-
-			POTGORH ^= (-OUTLX ^ POTGORH) & (1UL << 1);
-			POTGORH ^= (-OUTLY ^ POTGORH) & (1UL << 3);
-			POTGORH ^= (-OUTRX ^ POTGORH) & (1UL << 5);
-			POTGORH ^= (-OUTRY ^ POTGORH) & (1UL << 7);
-
-		}
-
-		if (address == 0x35) {
-			POTGORL = ReadData();
-
-		}
-
-		if (address == 0x36) { //JOYTEST
-			uint8_t data_readH = ReadData();
-			joy0datH = data_readH;
-			joy1datH = data_readH;
-
-		}
-		if (address == 0x37) {
-			uint8_t data_readL = ReadData();
-			joy0datL = data_readL;
-			joy1datL = data_readL;
-
-		}
-
-	}
-
-
+	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin;
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	INTSIG7_GPIO_Port->BSRR = INTSIG7_RELEASE;
-	uint8_t rtcaddress = ReadRTCAddress();
+	register uint8_t rtcaddress = ReadRTCAddress();
 	if (HAL_GPIO_ReadPin(RW_GPIO_Port, RW_Pin)) {
 		WriteData(RTC_Read(rtcaddress, &hrtc));
 	} else {
 		RTC_Write(rtcaddress, ReadData(), &hrtc);
 
 	}
-
-
-
+	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin; //in case address is not handled.
 }
 
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
-void Error_Handler(void) {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
