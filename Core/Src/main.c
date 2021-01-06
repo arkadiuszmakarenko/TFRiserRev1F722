@@ -47,21 +47,21 @@ HID_USBDevicesTypeDef *usb;
 HID_KEYBD_Info_TypeDef *k_pinfo;
 keyboard_code_t keycode = { 0 };
 
-static volatile int8_t POTGORH = 0xFF;
-static volatile int8_t POTGORL = 0x01;
+static  int8_t POTGORH = 0xFF;
+static  int8_t POTGORL = 0x01;
 
-static volatile int8_t CIAAPRA = 0xC0;
-static volatile int8_t CIAADRA = 0x03;
+static  int8_t CIAAPRA = 0xC0;
+static  int8_t CIAADRA = 0x03;
 
-static volatile int8_t joy0datH = 0;
-static volatile int8_t joy0datL = 0;
-static volatile int8_t joy1datH = 0;
-static volatile int8_t joy1datL = 0;
+static  int8_t joy0datH = 0;
+static  int8_t joy0datL = 0;
+static  int8_t joy1datH = 0;
+static  int8_t joy1datL = 0;
 
-static volatile uint8_t sensitivityMouse;
+static  uint8_t sensitivityMouse;
 
-static volatile gamepad_buttons_t gamepad1_buttons;
-static volatile gamepad_buttons_t gamepad2_buttons;
+static  gamepad_buttons_t gamepad1_buttons;
+static  gamepad_buttons_t gamepad2_buttons;
 
 
 /* USER CODE END PD */
@@ -75,6 +75,8 @@ static volatile gamepad_buttons_t gamepad2_buttons;
 
 RTC_HandleTypeDef hrtc;
 
+TIM_HandleTypeDef htim14;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -83,6 +85,7 @@ RTC_HandleTypeDef hrtc;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_RTC_Init(void);
+static void MX_TIM14_Init(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
@@ -162,9 +165,11 @@ int main(void)
   MX_GPIO_Init();
   MX_USB_HOST_Init();
   MX_RTC_Init();
+  MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
 	DWT_Init();
 	RTC_M6242_Init();
+	amikb_init();
 	//amikb_startup();
 
 	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
@@ -575,6 +580,37 @@ static void MX_RTC_Init(void)
 }
 
 /**
+  * @brief TIM14 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM14_Init(void)
+{
+
+  /* USER CODE BEGIN TIM14_Init 0 */
+
+  /* USER CODE END TIM14_Init 0 */
+
+  /* USER CODE BEGIN TIM14_Init 1 */
+
+  /* USER CODE END TIM14_Init 1 */
+  htim14.Instance = TIM14;
+  htim14.Init.Prescaler = 54000;
+  htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim14.Init.Period = 0;
+  htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM14_Init 2 */
+
+  /* USER CODE END TIM14_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -828,15 +864,16 @@ void EXTI15_10_IRQHandler(void) //GPIO_PIN_12 //INTSIG2
 
 			case 0x16:
 				// in case of cd32 button support provide serialised button data.
+
 				if (gamepad1_buttons.enable == 1) {
-					uint8_t buttonsBit = ((gamepad1_buttons.buttons_data
+					register uint8_t buttonsBit = ((gamepad1_buttons.buttons_data
 							>> gamepad1_buttons.index) & 1U);
 					POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 6);
 
 				}
 
 				if (gamepad2_buttons.enable == 1) {
-					uint8_t buttonsBit = ((gamepad2_buttons.buttons_data
+					register uint8_t buttonsBit = ((gamepad2_buttons.buttons_data
 							>> gamepad2_buttons.index) & 1U);
 					POTGORH ^= (-buttonsBit ^ POTGORH) & (1UL << 2);
 				}
@@ -915,6 +952,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 	}
 	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin; //in case address is not handled.
+}
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim->Instance == TIM14)
+	{
+		amikb_process_irq();
+	}
+
 }
 
 /* USER CODE END 4 */

@@ -5,6 +5,20 @@
 #include "stm32f7xx.h"
 #include "main.h"
 #include "dwt_delay.h"
+#include "utils.h"
+
+
+FIFO_Utils_TypeDef kb_fifo;
+uint8_t* kb_buff;
+uint8_t charToSend;
+TIM_HandleTypeDef htim14;
+uint8_t processFlag = 1;
+uint8_t i = 0;
+
+
+#define KEY_BUFF_SIZE							50
+
+
 
 
 #define KEY_NONE                               0x00
@@ -628,13 +642,11 @@ static unsigned char capslk = 0;
 static unsigned char numlk = 0;
 static unsigned char scrolllk = 0;
 
-
 static led_status_t amikb_send(uint8_t code, int press);
 
 static uint8_t scancode_to_amiga(uint8_t lkey)
 {
 	uint8_t i = 0, keyvalue = lkey;
-
 	for (i = 0; i < KEYCODE_TAB_SIZE; i++)
 	{
 
@@ -644,15 +656,12 @@ static uint8_t scancode_to_amiga(uint8_t lkey)
 			break;
 		}
 	}
-
 	return keyvalue;
 }
 
 static uint8_t ascii_to_scancode(uint8_t ascii)
 {
 	uint8_t i = 0, keyvalue = ascii;
-	//DBG_N("Enter with '%c' 0x%02x ASCII\r\n", ascii, ascii);
-
 	for (i = 0; i < KEYCODE_TAB_SIZE; i++)
 	{
 		if (ascii == asciiscancode[i][1])
@@ -666,6 +675,27 @@ static uint8_t ascii_to_scancode(uint8_t ascii)
 	return keyvalue;
 }
 // **************************
+
+void amikb_init()
+{
+
+
+	  htim14.Instance = TIM14;
+	  htim14.Init.Prescaler = 5400 -1; //set up to 0.25ms
+	  htim14.Init.Period = 40 -1; //1 period == 0.25ms 10ms
+
+	  if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+
+
+	kb_buff =(uint8_t*) malloc (KEY_BUFF_SIZE *sizeof(uint8_t));
+	FifoInit(&kb_fifo, kb_buff, KEY_BUFF_SIZE *sizeof(uint8_t));
+
+}
+
+
 void amikb_startup(void)
 {
 	uint8_t AMIGA_INITPOWER = 0xFD; //11111101
@@ -673,8 +703,6 @@ void amikb_startup(void)
 
 	// De-assert nRESET for Amiga...
    	amikb_reset();
-
-
 	HAL_Delay(200);           // wait for sync
 	amikb_send((uint8_t) AMIGA_INITPOWER, 0); // send "initiate power-up"
 	DWT_Delay(200);
@@ -690,7 +718,6 @@ void amikb_ready(int isready)
 
 static led_status_t amikb_send(uint8_t keycode, int press)
 {
-	int i;
 	led_status_t rval = NO_LED;
 
 	if (keycode == 0x62 || keycode == 0x68 || keycode == 0x1c) // Caps Lock, Num Lock or Scroll Lock Pressed or Released
@@ -832,6 +859,50 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 
 	prev_keycode = keycode;
 
+	FifoWrite(&kb_fifo, &keycode, 1);
+
+	return rval;
+}
+
+// **************************
+void amikb_reset(void)
+{
+	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_RESET); // Clear KBD_CLOCK pin
+	HAL_Delay(600);
+	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);   // Set KBD_CLOCK pin
+	prev_keycode = 0xff;
+	capslk = 0;
+	numlk = 0;
+	scrolllk = 0;
+}
+
+// ****************************
+
+#define OK_RESET	3 /* 3 special keys to have a KBRESET */
+
+
+void amikb_process_irq()
+{
+	uint8_t keycode;
+	uint8_t hasValue = 0;
+
+	if (kb_fifo.lock ==1) //if we happen to be in wrong place wait another 5ms
+	{
+		return;
+	}
+
+
+
+//	HAL_TIM_Base_Stop_IT(&htim14);
+	//load keycode from buffer
+	hasValue = FifoRead(&kb_fifo, &keycode, 1);
+
+	if(hasValue == 0) //we have reached end of buffer stop TIM IRQ
+	{
+		HAL_TIM_Base_Stop_IT(&htim14);
+		return;
+	}
+
 
 	// make sure we don't pulse the lines while grabbing control
 	// by first reinstating the pullups before changing direction
@@ -866,38 +937,8 @@ static led_status_t amikb_send(uint8_t keycode, int press)
 	}
 	DWT_Delay(10);
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET); // Set KBD_DATA pin
-
-	// handshake wait 500msec
-	HAL_Delay(5);
-	// The following instructions should be useless as the port has been configured as input few
-	// lines above... :-/
-	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin,  GPIO_PIN_SET); // Set KBD_DATA pin
-	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET); // Set KBD_CLOCK pin
-	//DBG_N("Exit: %d\r\n", rval);
-	return rval;
 }
 
-// **************************
-void amikb_reset(void)
-{
-	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_RESET); // Clear KBD_CLOCK pin
-	HAL_Delay(600);
-	HAL_GPIO_WritePin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin, GPIO_PIN_SET);   // Set KBD_CLOCK pin
-	prev_keycode = 0xff;
-	capslk = 0;
-	numlk = 0;
-	scrolllk = 0;
-}
-
-// ****************************
-bool amikb_reset_check(void)
-{
-	bool is_low;
-	is_low = HAL_GPIO_ReadPin(KBD_CLOCK_GPIO_Port, KBD_CLOCK_Pin) == GPIO_PIN_RESET ? true : false;
-	return is_low;
-}
-
-#define OK_RESET	3 /* 3 special keys to have a KBRESET */
 
 led_status_t amikb_process(keyboard_code_t *data)
 {
@@ -1058,6 +1099,8 @@ led_status_t amikb_process(keyboard_code_t *data)
 		   prevkeycode.keys[i] = data->keys[i];
 
 		}
+
+	HAL_TIM_Base_Start_IT(&htim14); //start timer to process buffer content
 
 	return rval;
 }
