@@ -700,7 +700,7 @@ void amikb_startup(void)
 {
 	uint8_t AMIGA_INITPOWER = 0xFD; //11111101
 	uint8_t AMIGA_TERMPOWER = 0xFE; //11111110
-
+	HAL_Delay(200);
 	// De-assert nRESET for Amiga...
    	amikb_reset();
 	HAL_Delay(200);           // wait for sync
@@ -904,8 +904,6 @@ void amikb_process_irq()
 	}
 
 
-	// make sure we don't pulse the lines while grabbing control
-	// by first reinstating the pullups before changing direction
 	HAL_GPIO_WritePin(KBD_DATA_GPIO_Port, KBD_DATA_Pin, GPIO_PIN_SET); // Normally KBD_DATA pin is HIGH
 
 	// pulse the data line and wait for about 100us

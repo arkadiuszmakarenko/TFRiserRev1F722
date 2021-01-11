@@ -50,7 +50,7 @@ keyboard_code_t keycode = { 0 };
 static  int8_t POTGORH = 0xFF;
 static  int8_t POTGORL = 0x01;
 
-static  int8_t CIAAPRA = 0xC0;
+static  int8_t CIAAPRA = 0xFF;
 static  int8_t CIAADRA = 0x03;
 
 static  int8_t joy0datH = 0;
@@ -134,6 +134,10 @@ static void usb_keyboard_led_init(USBH_HandleTypeDef *usbhost) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+ 	__IO uint32_t * CM7_DTCMCR = (uint32_t*)(0xE000EF94);
+	* CM7_DTCMCR &= 0xFFFFFFFD; /* Disable read-modify-write */
+
+
 	gamepad1_buttons.buttons_data = 0x00FF;
 	gamepad2_buttons.buttons_data = 0x00FF;
 
@@ -220,7 +224,7 @@ int main(void)
 				for (i = 0; i < KEY_PRESSED_MAX; i++) {
 					keycode.keys[i] = k_pinfo->keys[i];
 				}
-				HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+
 				stat = amikb_process(&keycode);
 
 				switch (stat) {
@@ -891,16 +895,19 @@ void EXTI15_10_IRQHandler(void) //GPIO_PIN_12 //INTSIG2
 		switch (address) {
 				case 0x01:
 				case 0x03F:
-					CIAAPRA = ReadData(); // BFE001
+					;
+					uint8_t tempCIAAPRA = ReadData(); // BFE001
 
 					//CD32 button support, it is moment when cd32 clock serial buttons to provide next button value.
-					if (gamepad1_buttons.enable == 1 && ((CIAAPRA >> 7) & 1U) == 1) {
+					if (gamepad1_buttons.enable == 1 && ((tempCIAAPRA >> 7) & 1U) == 1) {
 						gamepad1_buttons.index++;
 					}
 
-					if (gamepad2_buttons.enable == 1 && ((CIAAPRA >> 6) & 1U) == 1) {
+					if (gamepad2_buttons.enable == 1 && ((tempCIAAPRA >> 6) & 1U) == 1) {
 						gamepad2_buttons.index++;
 					}
+
+					//CIAAPRA = (CIAAPRA&0xC0) | (tempCIAAPRA&0x3F);
 
 					break;
 
