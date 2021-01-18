@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include "main.h"
 
 #define KEY_PRESSED_MAX 6
 typedef struct {
@@ -35,6 +36,8 @@ typedef enum {
 	SCROLL_LOCK_LED = (1 << 2),
 } keyboard_led_t;
 
+void amikb_process_irq();
+void amikb_init();
 extern void amikb_startup(void);
 extern led_status_t amikb_process(keyboard_code_t *data);
 extern void amikb_notify(const char *notify);
