@@ -60,6 +60,11 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define RW_Pin GPIO_PIN_13
 #define RW_GPIO_Port GPIOC
+#define SPI2_MISO_Pin GPIO_PIN_2
+#define SPI2_MISO_GPIO_Port GPIOC
+#define SPI2_MISO_EXTI_IRQn EXTI2_IRQn
+#define A5_Pin GPIO_PIN_3
+#define A5_GPIO_Port GPIOC
 #define INTSIG8_Pin GPIO_PIN_0
 #define INTSIG8_GPIO_Port GPIOA
 #define INTSIG8_EXTI_IRQn EXTI0_IRQn
@@ -87,8 +92,6 @@ void Error_Handler(void);
 #define INTSIG4_Pin GPIO_PIN_8
 #define INTSIG4_GPIO_Port GPIOC
 #define INTSIG4_EXTI_IRQn EXTI9_5_IRQn
-#define INTSIG5_Pin GPIO_PIN_9
-#define INTSIG5_GPIO_Port GPIOC
 #define A4_Pin GPIO_PIN_10
 #define A4_GPIO_Port GPIOA
 #define INTSIG3_Pin GPIO_PIN_15
@@ -117,6 +120,9 @@ typedef struct {
 	uint8_t index;
 	uint16_t buttons_data;
 } gamepad_buttons_t;
+
+
+
 
 
 /* USER CODE END Private defines */

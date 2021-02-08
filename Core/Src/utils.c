@@ -1,7 +1,7 @@
 #include "utils.h"
 
 
-void FifoInit(FIFO_Utils_TypeDef *f, uint8_t *buf, uint16_t size)
+void FifoInit(FIFO_Utils_TypeDef *f, uint8_t *buf, uint32_t size)
 {
   f->head = 0U;
   f->tail = 0U;
@@ -92,3 +92,16 @@ uint16_t FifoWrite(FIFO_Utils_TypeDef *f, void *buf, uint16_t  nbytes)
   return nbytes;
 }
 
+
+int FifoSpaceLeft(FIFO_Utils_TypeDef *f)
+{
+	//end - head, start - tail
+	return (f->tail > f->head) ? (f->tail-f->head) -1 : (f->size - f->head + f->tail)-1;
+}
+
+void FifoClear(FIFO_Utils_TypeDef *f)
+{
+	f->tail = 0;
+	f->head = 0;
+
+}

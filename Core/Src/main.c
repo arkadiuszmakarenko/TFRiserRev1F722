@@ -26,6 +26,20 @@
 #include "dwt_delay.h"
 #include "amiga.h"
 #include "rtc_msm6242.h"
+#include "utils.h"
+#include "math.h"
+#include "spiritMP3Dec.h"
+
+#define MY_FRAME_SIZE_IN_SAMPLES 576
+// Output PCM buffer: size multiplied by two to account for stereo signal
+short g_aPCMSamples [2*MY_FRAME_SIZE_IN_SAMPLES];
+// Decoder structure
+TSpiritMP3Decoder g_MP3Decoder;
+// Callback function, reads MP3 data from the file, calling fread().
+// Assumes that token is a MP3 FILE handle;
+
+
+
 
 /* USER CODE END Includes */
 
@@ -63,6 +77,34 @@ static  uint8_t sensitivityMouse;
 static  gamepad_buttons_t gamepad1_buttons;
 static  gamepad_buttons_t gamepad2_buttons;
 
+static FIFO_Utils_TypeDef sound_fifo;
+static uint8_t* sound_buff;
+static uint8_t sound_isfull = 0xFF;
+
+
+static FIFO_Utils_TypeDef PCM_fifo;
+static uint8_t* PCM_buff;
+
+
+int writesize = 0;
+int bufftowritesize = 0;
+int nSamples = 0;
+int overfill = 0;
+
+int size1 = 0;
+int size2 = 0;
+
+uint8_t mp3Buff[572] = {0};
+
+
+
+
+
+int Myi = 0;
+
+uint32_t sinval[100];
+#define PI 3.14
+
 
 /* USER CODE END PD */
 
@@ -73,8 +115,13 @@ static  gamepad_buttons_t gamepad2_buttons;
 
 /* Private variables ---------------------------------------------------------*/
 
+DAC_HandleTypeDef hdac;
+DMA_HandleTypeDef hdma_dac1;
+DMA_HandleTypeDef hdma_dac2;
+
 RTC_HandleTypeDef hrtc;
 
+TIM_HandleTypeDef htim13;
 TIM_HandleTypeDef htim14;
 
 /* USER CODE BEGIN PV */
@@ -84,8 +131,11 @@ TIM_HandleTypeDef htim14;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_RTC_Init(void);
 static void MX_TIM14_Init(void);
+static void MX_DAC_Init(void);
+static void MX_TIM13_Init(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
@@ -125,6 +175,13 @@ static void usb_keyboard_led_init(USBH_HandleTypeDef *usbhost) {
 	}
 }
 
+
+
+unsigned int RetrieveMP3Data(void * pMP3CompressedData, unsigned int nMP3DataSizeInChars, void * token)
+{
+	return FifoRead(token, pMP3CompressedData, nMP3DataSizeInChars);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -134,7 +191,8 @@ static void usb_keyboard_led_init(USBH_HandleTypeDef *usbhost) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
- 	__IO uint32_t * CM7_DTCMCR = (uint32_t*)(0xE000EF94);
+
+    __IO uint32_t * CM7_DTCMCR = (uint32_t*)(0xE000EF94);
 	* CM7_DTCMCR &= 0xFFFFFFFD; /* Disable read-modify-write */
 
 
@@ -167,9 +225,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USB_HOST_Init();
   MX_RTC_Init();
   MX_TIM14_Init();
+  MX_DAC_Init();
+  MX_TIM13_Init();
   /* USER CODE BEGIN 2 */
 	DWT_Init();
 	RTC_M6242_Init();
@@ -188,6 +249,26 @@ int main(void)
 		sensitivityMouse = 2;
 	}
 
+	sound_buff =(uint8_t*) malloc (65535 *sizeof(uint8_t));
+	FifoInit(&sound_fifo, sound_buff, 65535); //Init 64k buffer
+
+	PCM_buff = (uint8_t*) malloc (65535 *sizeof(uint8_t));
+	FifoInit(&PCM_fifo, PCM_buff, 65535); //Init 64k buffer
+
+	 TSpiritMP3Info pInfo ;
+
+	    SpiritMP3DecoderInit(
+	    &g_MP3Decoder, // MP3 decoder object
+	    RetrieveMP3Data, // Input callback function
+	    NULL, // No post-process callback
+		&sound_fifo// Callback parameter
+	    );
+
+
+
+	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+	HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
+	HAL_TIM_Base_Start_IT(&htim13);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -198,6 +279,43 @@ int main(void)
     MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
+
+
+
+
+
+    // Decode loop
+if (FifoSpaceLeft(&PCM_fifo) >= (MY_FRAME_SIZE_IN_SAMPLES*4) && (FifoSpaceLeft(&sound_fifo) < 32767))
+{
+    nSamples = SpiritMP3Decode(
+    &g_MP3Decoder, // MP3 decoder object
+    g_aPCMSamples, // Output PCM buffer
+	MY_FRAME_SIZE_IN_SAMPLES, // PCM buffer size in samples (1 sample = 2ch*16 bits)
+	&pInfo // [OUT] MP3 stream info structure – optional, not used in example.
+    );
+
+
+  FifoWrite(&PCM_fifo, &g_aPCMSamples, sizeof(g_aPCMSamples));
+
+
+  size1 = FifoSpaceLeft(&sound_fifo);
+  size2 = FifoSpaceLeft(&PCM_fifo);
+
+
+   // fwrite(g_aPCMSamples, 2*sizeof(short), nSamples, pPCMFile);
+
+    //for(int i=0;i<sizeof(g_aPCMSamples);i++)
+    //{
+    //	short sample = 0;
+    //	sample = (g_aPCMSamples[i]+ 0x8FFF)>>4;
+    //	FifoWrite(&PCM_fifo, &sample, 2);
+    	//sample = sample + 0x8FFF;
+    	//FifoWrite(&PCM_fifo, &g_aPCMSamples, 2);
+
+   // }
+
+}
+
 
 		usb = (HID_USBDevicesTypeDef*) USBH_HID_GetUSBDev();
 
@@ -316,7 +434,8 @@ int main(void)
 			//__enable_irq();
 
 		}
-
+		size1 = FifoSpaceLeft(&sound_fifo);
+		size2 = FifoSpaceLeft(&PCM_fifo);
 		//gamepad_data
 		//RIGHT = (*joymap&0x1);
 		//LEFT = (*joymap>>1&0x1);
@@ -550,6 +669,50 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief DAC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DAC_Init(void)
+{
+
+  /* USER CODE BEGIN DAC_Init 0 */
+
+  /* USER CODE END DAC_Init 0 */
+
+  DAC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN DAC_Init 1 */
+
+  /* USER CODE END DAC_Init 1 */
+  /** DAC Initialization
+  */
+  hdac.Instance = DAC;
+  if (HAL_DAC_Init(&hdac) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** DAC channel OUT1 config
+  */
+  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
+  if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** DAC channel OUT2 config
+  */
+  if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DAC_Init 2 */
+
+  /* USER CODE END DAC_Init 2 */
+
+}
+
+/**
   * @brief RTC Initialization Function
   * @param None
   * @retval None
@@ -580,6 +743,37 @@ static void MX_RTC_Init(void)
   /* USER CODE BEGIN RTC_Init 2 */
 
   /* USER CODE END RTC_Init 2 */
+
+}
+
+/**
+  * @brief TIM13 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM13_Init(void)
+{
+
+  /* USER CODE BEGIN TIM13_Init 0 */
+
+  /* USER CODE END TIM13_Init 0 */
+
+  /* USER CODE BEGIN TIM13_Init 1 */
+
+  /* USER CODE END TIM13_Init 1 */
+  htim13.Instance = TIM13;
+  htim13.Init.Prescaler = 0;
+  htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim13.Init.Period = 4897;
+  htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim13.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM13_Init 2 */
+
+  /* USER CODE END TIM13_Init 2 */
 
 }
 
@@ -615,6 +809,25 @@ static void MX_TIM14_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -638,11 +851,17 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, INTSIG6_Pin|INTSIG7_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : RW_Pin A0_Pin A1_Pin A2_Pin
-                           INTSIG5_Pin */
-  GPIO_InitStruct.Pin = RW_Pin|A0_Pin|A1_Pin|A2_Pin
-                          |INTSIG5_Pin;
+  /*Configure GPIO pins : RW_Pin A5_Pin A0_Pin A1_Pin
+                           A2_Pin */
+  GPIO_InitStruct.Pin = RW_Pin|A5_Pin|A0_Pin|A1_Pin
+                          |A2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : SPI2_MISO_Pin INTSIG4_Pin */
+  GPIO_InitStruct.Pin = SPI2_MISO_Pin|INTSIG4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
@@ -687,12 +906,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : INTSIG4_Pin */
-  GPIO_InitStruct.Pin = INTSIG4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(INTSIG4_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : A4_Pin */
   GPIO_InitStruct.Pin = A4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -717,6 +930,9 @@ static void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
@@ -730,7 +946,7 @@ static void MX_GPIO_Init(void)
 static inline uint8_t ReadRTCAddress() {
 	register uint32_t gpioa_data = GPIOA->IDR;
 	register uint32_t gpioc_data = GPIOC->IDR;
-	register uint8_t address = ((gpioc_data >> 9) & 1U); //PC9 - INTSIG5
+	register uint8_t address = ((gpioc_data >> 3) & 1U); //PC3 - A5
 	address = (address << 1) | ((gpioa_data >> 10) & 1U); //PA10 - A4
 	address = (address << 1) | ((gpioa_data >> 15) & 1U); //PA15 - INTSIG3
 	address = (address << 1) | ((gpioc_data >> 7) & 1U); //PC7 - A2
@@ -741,7 +957,7 @@ static inline uint8_t ReadAddress() {
 	register uint32_t gpioa_data = GPIOA->IDR;
 	register uint32_t gpioc_data = GPIOC->IDR;
 
-	register uint8_t address = ((gpioc_data >> 9) & 1U); //PC9 - INTSIG5
+	register uint8_t address = ((gpioc_data >> 3) & 1U); //PC3 - A5
 	address = (address << 1) | ((gpioa_data >> 10) & 1U); //PA10 - A4
 	address = (address << 1) | ((gpioa_data >> 15) & 1U); //PA15 - INTSIG3
 	address = (address << 2) | ((gpioc_data >> 6) & 0b11); //PC6 - A1 & PC7 - A2
@@ -876,6 +1092,7 @@ void EXTI15_10_IRQHandler(void) //GPIO_PIN_12 //INTSIG2
 
 				}
 
+
 				if (gamepad2_buttons.enable == 1) {
 					register uint8_t buttonsBit = ((gamepad2_buttons.buttons_data
 							>> gamepad2_buttons.index) & 1U);
@@ -962,12 +1179,70 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 }
 
 
+void EXTI2_IRQHandler(void)
+{
+	INTSIG7_GPIO_Port->BSRR = INTSIG7_RELEASE;
+	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_2);
+	register uint8_t rtcaddress = ReadRTCAddress();
+
+	if (rtcaddress == 0x00)
+	{
+		uint8_t read = ReadData();
+		FifoWrite(&sound_fifo, &read, 1);
+
+	}
+
+	if (rtcaddress == 0x01)
+		{
+			WriteData(FifoSpaceLeft(&sound_fifo)&0xFF);
+		}
+
+	if (rtcaddress == 0x02)
+		{
+			WriteData(FifoSpaceLeft(&sound_fifo)>>8);
+		}
+
+	if (rtcaddress == 0x03)
+	{
+		FifoClear(&sound_fifo);
+		FifoClear(&PCM_fifo);
+
+	}
+
+
+
+
+	INTSIG7_GPIO_Port->BSRR = INTSIG7_Pin; //in case address is not handled.
+
+}
+
+
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == TIM14)
 	{
 		amikb_process_irq();
 	}
+
+	if(htim->Instance == TIM13)
+	{
+		int16_t outputL = 0;
+		int16_t outputR = 0;
+		uint16_t outL = 0;
+		uint16_t outR = 0;
+
+
+
+		FifoRead(&PCM_fifo, &outputL, 2);
+		FifoRead(&PCM_fifo, &outputR, 2);
+
+		outL = (uint16_t)(outputL+0x7FFF);
+		outR = (uint16_t)(outputR+0x7FFF);
+		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_L, outL);
+		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_L, outR);
+	}
+
 
 }
 
