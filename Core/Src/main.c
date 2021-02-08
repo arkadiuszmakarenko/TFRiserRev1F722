@@ -55,8 +55,15 @@ static  int8_t CIAADRA = 0x03;
 
 static  int8_t joy0datH = 0;
 static  int8_t joy0datL = 0;
+
+static  int8_t joy0datHDelta = 0;
+static  int8_t joy0datLDelta = 0;
+
 static  int8_t joy1datH = 0;
 static  int8_t joy1datL = 0;
+
+static  int8_t joy1datHDelta = 0;
+static  int8_t joy1datLDelta = 0;
 
 static  uint8_t sensitivityMouse;
 
@@ -134,7 +141,7 @@ static void usb_keyboard_led_init(USBH_HandleTypeDef *usbhost) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
- 	__IO uint32_t * CM7_DTCMCR = (uint32_t*)(0xE000EF94);
+   	__IO uint32_t * CM7_DTCMCR = (uint32_t*)(0xE000EF94);
 	* CM7_DTCMCR &= 0xFFFFFFFD; /* Disable read-modify-write */
 
 
@@ -287,7 +294,9 @@ int main(void)
 		if (usb->mouse != NULL) {
 			//; //delay interrupt
 
+			joy0datHDelta = 0;
 			joy0datH = joy0datH + ((usb->mouse->y) / sensitivityMouse);
+			joy0datLDelta = 0;
 			joy0datL = joy0datL + ((usb->mouse->x) / sensitivityMouse);
 
 			if (usb->mouse->buttons[1] == 1) {
@@ -338,25 +347,46 @@ int main(void)
 			//__disable_irq();
 			joy1datH = 0;
 			joy1datL = 0;
+			joy1datHDelta = 0;
+			joy1datLDelta = 0;
 
 			//usb->gamepad1->gamepad_extraBtn;
 
 			if (usb->gamepad1->gamepad_data >> 1 & 0x1)
+			{
 				joy1datH = 0x3;
+				joy1datHDelta = 0x3;
+			}
 			if (usb->gamepad1->gamepad_data >> 3 & 0x1)
+			{
 				joy1datH = 0x1;
+				joy1datHDelta = 0x1;
+			}
 			if (usb->gamepad1->gamepad_data >> 1 & 0x1
 					&& usb->gamepad1->gamepad_data >> 3 & 0x1)
+			{
 				joy1datH = 0x2;
+				joy1datHDelta = 0x2;
 
+			}
 			if (usb->gamepad1->gamepad_data & 0x1)
+			{
 				joy1datL = 0x3;
+				joy1datLDelta = 0x3;
+
+			}
+
 			if (usb->gamepad1->gamepad_data >> 2 & 0x1)
+			{
 				joy1datL = 0x1;
+				joy1datLDelta = 0x1;
+			}
 			if (usb->gamepad1->gamepad_data & 0x1
 					&& usb->gamepad1->gamepad_data >> 2 & 0x1)
+			{
 				joy1datL = 0x2;
-
+				joy1datLDelta = 0x2;
+			}
 			if ((POTGORH >> 5) & 1U) { //check if register is output enable
 				if (usb->gamepad1->gamepad_data >> 5 & 0x1) {
 					POTGORH &= ~(1UL << 4);
@@ -421,22 +451,48 @@ int main(void)
 			joy0datH = 0;
 			joy0datL = 0;
 
+			joy0datHDelta = 0;
+			joy0datLDelta = 0;
+
 			if (usb->gamepad2->gamepad_data >> 1 & 0x1)
-				joy0datH = 0xFF;
+			{
+				joy0datH = 0x03;
+				joy0datHDelta = 0x03;
+			}
+
 			if (usb->gamepad2->gamepad_data >> 3 & 0x1)
+			{
 				joy0datH = 0x01;
+				joy0datHDelta = 0x01;
+
+			}
 			if (usb->gamepad2->gamepad_data >> 1 & 0x1
 					&& usb->gamepad2->gamepad_data >> 3 & 0x1)
+			{
 				joy0datH = 0x02;
+				joy0datHDelta = 0x02;
+
+			}
 
 			if (usb->gamepad2->gamepad_data & 0x1)
-				joy0datL = 0xFF;
+			{
+				joy0datL = 0x03;
+				joy0datLDelta = 0x03;
+			}
+
+
 			if (usb->gamepad2->gamepad_data >> 2 & 0x1)
+			{
 				joy0datL = 0x01;
+				joy0datLDelta = 0x01;
+			}
 			if (usb->gamepad2->gamepad_data & 0x1
 					&& usb->gamepad2->gamepad_data >> 2 & 0x1)
+			{
 				joy0datL = 0x02;
+				joy0datLDelta = 0x02;
 
+			}
 			if ((POTGORH >> 1) & 1U) { //check if register is output enable
 				if (usb->gamepad2->gamepad_data >> 5 & 0x1) {
 					POTGORH &= ~(1UL << 0);
@@ -934,14 +990,19 @@ void EXTI15_10_IRQHandler(void) //GPIO_PIN_12 //INTSIG2
 					;
 					uint8_t data_readH = ReadData();
 					joy0datH = data_readH;
+					joy0datH = joy0datH + joy0datHDelta;
+
 					joy1datH = data_readH;
+					joy1datH = joy1datH + joy1datHDelta; //restore joystic value
 					break;
 
 				case 0x37:
 					;
 					uint8_t data_readL = ReadData();
 					joy0datL = data_readL;
+					joy0datL = joy0datL + joy0datLDelta;
 					joy1datL = data_readL;
+					joy1datL = joy1datL + joy1datLDelta;
 					break;
 				}
 
