@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
+//#include <stdbool.h>
 #include "amiga.h"
-#include "stm32f7xx.h"
+//#include "stm32f7xx.h"
 #include "main.h"
 #include "dwt_delay.h"
 #include "utils.h"

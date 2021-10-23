@@ -37,7 +37,7 @@ register char * stack_ptr asm("sp");
 **/
 caddr_t _sbrk(int incr)
 {
-	extern char end asm("end");
+	extern char end asm("s_heap");
 	static char *heap_end;
 	char *prev_heap_end;
 
